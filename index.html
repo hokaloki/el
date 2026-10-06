@@ -1,0 +1,2349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Academic Ledger — Free CGPA & Result Analysis Tool for Students</title>
+<meta name="description" content="A free, private, in-browser tool for tracking semester GPA and CGPA (earned and attempted), planning retakes, and simulating what it takes to hit your target CGPA.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F6F7F1;
+  --paper-deep:#EBEEE1;
+  --card:#FFFFFF;
+  --line:#D7DACB;
+  --line-soft:#E7E9DD;
+  --ink:#1C2320;
+  --ink-soft:#5B655D;
+  --ink-faint:#8B948A;
+  --red:#A22E28;
+  --red-soft:#F3E0DD;
+  --gold:#93711C;
+  --gold-soft:#F1E8CE;
+  --green:#2E5C43;
+  --green-soft:#DDEAE1;
+  --bar:#E7EFE2;
+  --blue:#243F66;
+  --blue-soft:#E2E8F0;
+  --blue-bright:#2F548A;
+  --radius:5px;
+  --shadow: 0 1px 0 rgba(20,26,22,.05), 0 12px 26px -16px rgba(20,26,22,.28);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Inter',sans-serif;
+  line-height:1.5;
+  padding:0 0 90px;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{ background: var(--gold-soft); color:var(--ink); }
+a{color:inherit;}
+button{font-family:inherit;}
+:focus-visible{outline:2.5px solid var(--blue-bright);outline-offset:2px;}
+@media (prefers-reduced-motion: reduce){ *{animation-duration:.001ms !important; transition-duration:.001ms !important;} }
+
+/* ---------- Header ---------- */
+header.masthead{
+  max-width:1120px;
+  margin:0 auto;
+  padding:40px 24px 20px;
+  border-bottom:2px solid var(--ink);
+}
+.masthead-top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;}
+.brandmark{display:flex;align-items:flex-start;gap:14px;}
+.brandmark .mark{
+  flex:none;width:46px;height:46px;border-radius:50%;
+  border:2px solid var(--ink);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-weight:600;font-size:19px;
+  transform:rotate(-4deg);
+  background:var(--card);
+}
+.eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:8px;
+}
+.eyebrow::before{content:"◆";color:var(--blue);font-size:8px;}
+h1.title{
+  font-family:'Fraunces',serif;
+  font-weight:600;
+  font-size:clamp(28px,4.4vw,44px);
+  margin:0 0 6px;
+  letter-spacing:-.01em;
+}
+.subtitle{
+  color:var(--ink-soft);
+  font-size:14.5px;
+  max-width:58ch;
+}
+.trust-row{
+  display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-faint);
+}
+.trust-row span{display:flex;align-items:center;gap:6px;}
+.trust-row span::before{content:"✓";color:var(--green);font-weight:700;}
+
+.save-pill{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  display:flex;align-items:center;gap:7px;
+  border:1px solid var(--line);
+  background:var(--card);
+  padding:7px 12px;
+  border-radius:20px;
+  color:var(--ink-soft);
+  white-space:nowrap;
+}
+.save-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--ink-faint);flex:none;}
+.save-pill.state-saved .dot{background:var(--green);}
+.save-pill.state-pending .dot{background:var(--gold);animation:pulse 1.1s ease-in-out infinite;}
+.save-pill.state-error .dot,.save-pill.state-unavailable .dot{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+main{max-width:1120px;margin:0 auto;padding:0 24px;}
+
+/* ---------- Primary nav ---------- */
+nav.primary-nav{
+  max-width:1120px;
+  margin:0 auto;
+  padding:0 24px;
+  display:flex;
+  gap:2px;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  position:sticky;
+  top:0;
+  background:var(--paper);
+  z-index:20;
+  border-bottom:2px solid var(--ink);
+}
+.nav-tab{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12.5px;
+  font-weight:600;
+  letter-spacing:.02em;
+  padding:14px 18px;
+  background:transparent;
+  border:none;
+  border-bottom:3px solid transparent;
+  color:var(--ink-soft);
+  cursor:pointer;
+  white-space:nowrap;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.nav-tab:hover{color:var(--ink);}
+.nav-tab .nk{color:var(--ink-faint);font-size:11px;}
+.nav-tab.active{color:var(--ink);border-bottom-color:var(--blue-bright);}
+.nav-tab .warn-dot{width:6px;height:6px;border-radius:50%;background:var(--red);display:none;}
+.nav-tab.has-warn .warn-dot{display:inline-block;}
+
+/* ---------- Section shell ---------- */
+.page{display:none;margin-top:30px;}
+.page.active{display:block;}
+section.block{margin-top:34px;}
+section.block:first-child{margin-top:0;}
+.section-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:14px;
+  flex-wrap:wrap;
+}
+.section-title{
+  font-family:'Fraunces',serif;
+  font-weight:600;
+  font-size:21px;
+}
+.section-note{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  color:var(--ink-faint);
+}
+.page-lede{color:var(--ink-soft);font-size:14px;max-width:66ch;margin:-4px 0 22px;}
+
+/* ---------- Hero stamp (dashboard) ---------- */
+.hero-stamps{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:20px;}
+.stamp-big{
+  font-family:'IBM Plex Mono',monospace;
+  text-align:center;
+  border:2.5px solid var(--ink);
+  border-radius:6px;
+  padding:14px 26px;
+  background:var(--card);
+  box-shadow:var(--shadow);
+  transform:rotate(-2deg);
+  min-width:172px;
+}
+.stamp-big:nth-child(2){transform:rotate(1.5deg);}
+.stamp-big .sl{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px;}
+.stamp-big .sv{font-size:34px;font-weight:700;line-height:1;}
+.stamp-big .ss{font-size:10.5px;color:var(--ink-faint);margin-top:5px;}
+.stamp-big.earned{border-color:var(--green);}
+.stamp-big.earned .sv{color:var(--green);}
+.stamp-big.attempted{border-color:var(--blue);}
+.stamp-big.attempted .sv{color:var(--blue);}
+
+/* ---------- Cards / panels ---------- */
+.panel{
+  background:var(--card);
+  border:1px solid var(--ink);
+  border-radius:0 6px 6px 6px;
+  padding:22px;
+  box-shadow:var(--shadow);
+}
+.panel.plain{border-radius:6px;}
+.panel.soft{border-color:var(--line);box-shadow:none;}
+.panel-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  margin-bottom:16px;
+  flex-wrap:wrap;
+}
+.stamp{
+  font-family:'IBM Plex Mono',monospace;
+  text-align:center;
+  border:2px solid var(--ink);
+  border-radius:5px;
+  padding:8px 16px;
+  transform:rotate(-2deg);
+  min-width:120px;
+  background:var(--card);
+}
+.stamp .stamp-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);}
+.stamp .stamp-value{font-size:24px;font-weight:700;}
+
+/* ---------- Tables (greenbar ledger signature) ---------- */
+table{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:13.5px;}
+.table-wrap{overflow-x:auto;border-radius:4px;}
+thead th{
+  text-align:left;
+  font-size:10.5px;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  color:var(--card);
+  background:var(--ink);
+  border-bottom:1.5px solid var(--ink);
+  padding:9px 10px;
+  font-weight:600;
+}
+tbody td{
+  padding:8px 10px;
+  border-bottom:1px solid var(--line-soft);
+  vertical-align:middle;
+}
+tbody tr:nth-child(even){background:var(--bar);}
+tbody tr:hover{background:var(--blue-soft);}
+td.num{text-align:right;font-variant-numeric:tabular-nums;}
+tr.row-highlight{background:var(--green-soft) !important;}
+tr.row-highlight td{font-weight:700;}
+.row-del{
+  background:none;border:1px solid var(--line);color:var(--ink-faint);
+  width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1;
+}
+.row-del:hover{border-color:var(--red);color:var(--red);}
+
+/* ---------- Forms ---------- */
+.setup-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:14px;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:20px;
+  box-shadow:var(--shadow);
+}
+.field label{
+  display:block;
+  font-size:11px;
+  font-family:'IBM Plex Mono',monospace;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  margin-bottom:6px;
+}
+input[type="number"], input[type="text"], input[type="email"], input[type="password"], select{
+  width:100%;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:15px;
+  color:var(--ink);
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:3px;
+  padding:9px 10px;
+}
+input:focus, select:focus{
+  outline:2.5px solid var(--blue-bright);
+  outline-offset:1px;
+  border-color:var(--blue-bright);
+}
+input:disabled{color:var(--ink-soft);background:var(--paper-deep);}
+.field-hint{font-size:11.5px;color:var(--ink-faint);margin-top:5px;}
+
+/* ---------- Semester sub-tabs ---------- */
+.tabs{display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.tab{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  font-weight:600;
+  padding:10px 16px 12px;
+  background:var(--paper-deep);
+  border:1px solid var(--line);
+  border-bottom:none;
+  border-radius:6px 6px 0 0;
+  color:var(--ink-soft);
+  cursor:pointer;
+  white-space:nowrap;
+  position:relative;
+  top:2px;
+  transition:top .12s ease, background .12s ease, color .12s ease;
+}
+.tab:hover{color:var(--ink);}
+.tab.active{
+  background:var(--card);
+  color:var(--ink);
+  top:0;
+  border-color:var(--ink);
+  box-shadow:0 -2px 0 var(--blue-bright) inset;
+}
+.tab .tab-flag{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);margin-left:7px;vertical-align:middle;}
+
+/* ---------- Sub-nav pills (used inside What-If & Optimizer) ---------- */
+.subtab-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.subtab{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;
+  padding:8px 14px;border-radius:20px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink-soft);cursor:pointer;
+}
+.subtab:hover{border-color:var(--ink-soft);color:var(--ink);}
+.subtab.active{background:var(--ink);border-color:var(--ink);color:var(--paper);}
+.subpanel{display:none;}
+.subpanel.active{display:block;}
+
+/* ---------- Buttons ---------- */
+.btn{
+  font-family:'Inter',sans-serif;
+  font-weight:600;
+  font-size:13.5px;
+  padding:9px 16px;
+  border-radius:4px;
+  border:1px solid var(--ink);
+  background:var(--ink);
+  color:var(--paper);
+  cursor:pointer;
+}
+.btn:hover{background:#0f1613;}
+.btn.primary{background:var(--blue);border-color:var(--blue);}
+.btn.primary:hover{background:var(--blue-bright);}
+.btn.ghost{background:transparent;color:var(--ink);}
+.btn.ghost:hover{background:var(--paper-deep);}
+.btn.danger{border-color:var(--red);color:var(--red);background:transparent;}
+.btn.danger:hover{background:var(--red-soft);}
+.btn.small{padding:6px 12px;font-size:12.5px;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+
+.empty-note{font-size:13.5px;color:var(--ink-faint);padding:18px 4px;font-style:italic;}
+.empty-state{
+  border:1.5px dashed var(--line);border-radius:6px;padding:36px 24px;text-align:center;
+}
+.empty-state h4{font-family:'Fraunces',serif;font-size:19px;margin:0 0 8px;font-weight:600;}
+.empty-state p{color:var(--ink-soft);font-size:13.5px;max-width:48ch;margin:0 auto 16px;}
+
+/* ---------- Dashboard stat cards ---------- */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0;border:1px solid var(--line);border-radius:4px;overflow:hidden;}
+.stat-cell{padding:15px 16px;border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);background:var(--card);}
+.stat-cell:last-child{border-right:none;}
+.stat-cell .k{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:6px;}
+.stat-cell .v{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:700;}
+.stat-cell .v.emph{color:var(--red);}
+.stat-cell .v.good{color:var(--green);}
+.stat-cell .v.info{color:var(--blue);}
+
+.verdict{margin-top:16px;padding:16px 18px;border-radius:4px;display:flex;gap:14px;align-items:flex-start;}
+.verdict .vmark{font-family:'Fraunces',serif;font-size:26px;line-height:1;}
+.verdict .vtext{font-size:14px;}
+.verdict .vtext b{display:block;font-family:'Inter',sans-serif;font-size:15px;margin-bottom:3px;}
+.verdict.ok{background:var(--green-soft);color:var(--green);}
+.verdict.warn{background:var(--gold-soft);color:var(--gold);}
+.verdict.bad{background:var(--red-soft);color:var(--red);}
+
+/* ---------- Retake ledger (red ink) ---------- */
+.retake-list{display:flex;flex-direction:column;gap:10px;}
+.retake-item{
+  display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;
+  padding:12px 14px;background:var(--red-soft);border-left:3px solid var(--red);border-radius:2px;
+}
+.retake-item .badge{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:var(--red);
+  border:1px solid var(--red);border-radius:20px;padding:2px 9px;white-space:nowrap;
+}
+.retake-item .rname{font-weight:600;font-size:14px;}
+.retake-item .rmeta{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);}
+.retake-item .rimpact{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--red);font-weight:700;}
+.all-clear{
+  display:flex;align-items:center;gap:10px;padding:14px;background:var(--green-soft);
+  border-left:3px solid var(--green);border-radius:2px;color:var(--green);font-weight:600;font-size:14px;
+}
+.mini-alert{
+  display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;
+  padding:12px 16px;background:var(--red-soft);border-left:3px solid var(--red);border-radius:2px;
+  font-size:13.5px;color:var(--red);margin-bottom:20px;
+}
+.mini-alert.ok{background:var(--green-soft);border-left-color:var(--green);color:var(--green);}
+.mini-alert button.jump{font-family:'IBM Plex Mono',monospace;font-size:12px;text-decoration:underline;cursor:pointer;color:inherit;background:none;border:none;padding:0;font-weight:700;}
+
+/* ---------- What-if / optimizer shared bits ---------- */
+.whatif-row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;}
+.whatif-row .field{min-width:160px;}
+.whatif-result{
+  font-family:'IBM Plex Mono',monospace;font-size:14px;padding:14px 16px;background:var(--paper-deep);
+  border:1px dashed var(--ink-soft);border-radius:4px;line-height:1.7;
+}
+.whatif-result b{color:var(--ink);}
+.whatif-result.hl{border-style:solid;border-color:var(--green);background:var(--green-soft);color:var(--green);}
+.whatif-result.hl b{color:var(--green);}
+.whatif-result.bad{border-style:solid;border-color:var(--red);background:var(--red-soft);color:var(--red);}
+.whatif-result.bad b{color:var(--red);}
+
+.plan-row{display:grid;grid-template-columns:1fr 110px 110px auto;gap:10px;align-items:center;margin-bottom:8px;}
+.plan-row .lbl{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink-soft);}
+@media (max-width:560px){ .plan-row{grid-template-columns:1fr 1fr;} .plan-row .lbl{grid-column:1/-1;} }
+
+.combo-headline{
+  display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:18px 20px;
+  background:var(--blue-soft);border:1.5px solid var(--blue);border-radius:5px;margin-bottom:18px;
+}
+.combo-headline .chn{font-family:'Fraunces',serif;font-size:30px;font-weight:600;color:var(--blue);line-height:1;}
+.combo-headline .chl{font-size:11px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--blue);}
+.combo-headline .cht{font-size:13.5px;color:var(--ink);max-width:52ch;}
+.chip{
+  display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;
+  background:var(--card);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin:2px 4px 2px 0;
+}
+
+/* ---------- Cloud sync ---------- */
+.pills{display:flex;flex-direction:column;gap:6px;align-items:flex-end;}
+@media (max-width:640px){ .pills{align-items:flex-start;} }
+.cloud-auth{margin-top:14px;}
+.cloud-msg{font-family:'IBM Plex Mono',monospace;font-size:12px;margin-top:10px;min-height:1.4em;color:var(--ink-soft);}
+.cloud-msg.err{color:var(--red);}
+/* ---------- Retakes ---------- */
+.retake-tag{display:inline-block;margin-top:4px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:700;color:var(--blue);background:var(--blue-soft);border-radius:20px;padding:1px 8px;}
+.retake-box{margin-top:16px;padding:16px;background:var(--blue-soft);border:1px solid var(--blue);border-radius:5px;}
+.retake-box .btn-row{margin-top:10px;}
+/* ---------- Grade swap rows ---------- */
+.swap-row{display:grid;grid-template-columns:1fr 190px auto;gap:10px;align-items:center;margin-bottom:8px;}
+@media (max-width:560px){ .swap-row{grid-template-columns:1fr auto;} .swap-row .swap-course{grid-column:1/-1;} }
+
+/* ---------- Grading scale editor ---------- */
+.grade-row{display:grid;grid-template-columns:90px 110px 1fr auto;gap:10px;align-items:center;margin-bottom:8px;}
+.grade-row .glabel{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);}
+.earns-toggle{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;}
+@media (max-width:560px){ .grade-row{grid-template-columns:1fr 1fr auto;} .grade-row .glabel{display:none;} }
+
+/* ---------- Settings / storage explainer ---------- */
+.storage-box{
+  background:var(--card);border:1px solid var(--line);border-radius:4px;padding:18px 20px;
+  display:flex;gap:14px;align-items:flex-start;
+}
+.storage-box .sicon{font-family:'Fraunces',serif;font-size:22px;color:var(--ink-soft);line-height:1;}
+.storage-box h4{margin:0 0 4px;font-size:14.5px;font-family:'Inter',sans-serif;}
+.storage-box p{margin:0;font-size:13px;color:var(--ink-soft);}
+.storage-meta{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-faint);margin-top:8px;}
+
+.grade-below{text-decoration:underline wavy var(--red);text-decoration-thickness:1.5px;}
+.cgpa-cell{font-weight:700;}
+
+footer{
+  max-width:1120px;margin:60px auto 0;padding:20px 24px 0;
+  border-top:1px solid var(--line);font-size:12px;color:var(--ink-faint);
+}
+
+@media (max-width:640px){
+  .panel{padding:16px;}
+  .stat-cell .v{font-size:18px;}
+  .masthead-top{flex-direction:column;}
+  .hero-stamps{gap:12px;}
+  .stamp-big{min-width:140px;padding:12px 18px;}
+  .stamp-big .sv{font-size:27px;}
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-top">
+    <div class="brandmark">
+      <div class="mark">Σ</div>
+      <div>
+        <div class="eyebrow">Student copy · not an official transcript</div>
+        <h1 class="title">Academic Ledger</h1>
+        <p class="subtitle">A free result-analysis tool for students — semester GPA, CGPA counted two honest ways, retake priorities, and simulations for what it takes to hit your target.</p>
+        <div class="trust-row">
+          <span>Runs entirely in your browser</span>
+          <span>No account or upload</span>
+          <span>Works with any grading scale</span>
+        </div>
+      </div>
+    </div>
+    <div class="pills">
+      <div class="save-pill" id="savePill" title="Autosave status"><span class="dot"></span><span id="savePillText">Loading…</span></div>
+      <div class="save-pill" id="cloudPill" title="Cloud sync status"><span class="dot"></span><span id="cloudPillText">Cloud: …</span></div>
+    </div>
+  </div>
+</header>
+
+<nav class="primary-nav" id="primaryNav">
+  <button class="nav-tab active" data-page="dashboard"><span class="nk">01</span>Dashboard<span class="warn-dot" id="retakeWarnDot"></span></button>
+  <button class="nav-tab" data-page="semesters"><span class="nk">02</span>Semesters</button>
+  <button class="nav-tab" data-page="optimizer"><span class="nk">03</span>Retake Optimizer</button>
+  <button class="nav-tab" data-page="whatif"><span class="nk">04</span>Simulations</button>
+  <button class="nav-tab" data-page="settings"><span class="nk">05</span>Settings</button>
+</nav>
+
+<main>
+
+  <!-- ============ DASHBOARD ============ -->
+  <div class="page active" data-page="dashboard" id="page-dashboard">
+    <p class="page-lede">A one-glance view of where your degree stands right now — CGPA counted two ways, and whether your target is still on track.</p>
+
+    <section class="block">
+      <div id="dashAlert"></div>
+      <div class="hero-stamps" id="heroStamps"></div>
+      <div class="stat-grid" id="dashStats"></div>
+      <div class="verdict" id="dashVerdict"></div>
+      <p class="field-hint" style="margin-top:12px;max-width:70ch;">
+        <b>CGPA (Earned)</b> = Total Grade Points ÷ Total Earned Credits — credits from courses that don't earn credit (like a fail) are excluded.
+        &nbsp;·&nbsp; <b>CGPA (Attempted) / GPA</b> = Total Grade Points ÷ Total Attempted Credits — every attempted credit counts.
+      </p>
+    </section>
+
+    <section class="block">
+      <div class="section-head">
+        <div class="section-title">Running Summary</div>
+        <div class="section-note">every semester's CGPA, counted both ways</div>
+      </div>
+      <div class="panel">
+        <div class="table-wrap"><table id="summaryTable"></table></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ SEMESTERS ============ -->
+  <div class="page" data-page="semesters" id="page-semesters">
+    <p class="page-lede">Your IIUC CSE courses are preloaded for every semester. Pick a grade as each result arrives — courses without a grade are ignored. You can edit, add, move to another semester, or retake any course.</p>
+    <section class="block">
+      <div class="section-head">
+        <div class="section-title">Semester Record</div>
+        <div class="section-note" id="flagThresholdNote"></div>
+      </div>
+      <div class="tabs" id="tabsRow"></div>
+      <div class="panel" id="semesterPanel"></div>
+    </section>
+  </div>
+
+  <!-- ============ RETAKE OPTIMIZER ============ -->
+  <div class="page" data-page="optimizer" id="page-optimizer">
+    <p class="page-lede">Every flagged course, ranked by impact — plus the smallest combination of retakes that gets you to your target CGPA.</p>
+
+    <section class="block">
+      <div class="setup-grid">
+        <div class="field">
+          <label for="optTargetInput">Target CGPA (Earned)</label>
+          <input type="number" id="optTargetInput" value="3.80" min="0" max="4" step="0.01">
+        </div>
+        <div class="field">
+          <label for="optGradeInput">Assume each retake scores</label>
+          <select id="optGradeInput"></select>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div id="comboHeadline"></div>
+    </section>
+
+    <section class="block">
+      <div class="section-head">
+        <div class="section-title">Best Combination by Retake Count</div>
+        <div class="section-note">fewest subjects for the best result — recommended row highlighted</div>
+      </div>
+      <div class="panel">
+        <div class="table-wrap"><table id="comboTable"></table></div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="section-head">
+        <div class="section-title">Every Flagged Course</div>
+        <div class="section-note">ranked by individual credit-weighted impact</div>
+      </div>
+      <div id="retakePanel"></div>
+    </section>
+  </div>
+
+  <!-- ============ SIMULATIONS (What-If) ============ -->
+  <div class="page" data-page="whatif" id="page-whatif">
+    <p class="page-lede">Four ways to plan ahead — pick the one that answers your question.</p>
+
+    <div class="subtab-row" id="whatifSubtabs">
+      <button class="subtab active" data-whatif="next">Next semester</button>
+      <button class="subtab" data-whatif="reverse">What GPA do I need?</button>
+      <button class="subtab" data-whatif="plan">Multi-semester plan</button>
+      <button class="subtab" data-whatif="swap">Grade swap</button>
+    </div>
+
+    <!-- Next semester -->
+    <div class="subpanel active" data-whatif-panel="next">
+      <section class="block">
+        <div class="section-head">
+          <div class="section-title">Next Semester — Project Forward</div>
+          <div class="section-note">simulate one semester ahead</div>
+        </div>
+        <div class="panel">
+          <div class="whatif-row">
+            <div class="field">
+              <label for="nextCreditInput">Next semester credit hours</label>
+              <input type="number" id="nextCreditInput" value="15" min="0" step="0.5">
+            </div>
+            <div class="field">
+              <label for="nextGpaInput">Expected GPA that semester</label>
+              <input type="number" id="nextGpaInput" value="3.75" min="0" max="4" step="0.01">
+            </div>
+          </div>
+          <div class="whatif-result" id="whatifResult"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Reverse solve -->
+    <div class="subpanel" data-whatif-panel="reverse">
+      <section class="block">
+        <div class="section-head">
+          <div class="section-title">What GPA Do I Need?</div>
+          <div class="section-note">reverse-solve for one semester</div>
+        </div>
+        <div class="panel">
+          <div class="whatif-row">
+            <div class="field">
+              <label for="revTargetInput">Target CGPA (Earned) by then</label>
+              <input type="number" id="revTargetInput" value="3.80" min="0" max="4" step="0.01">
+            </div>
+            <div class="field">
+              <label for="revCreditInput">That semester's credit hours</label>
+              <input type="number" id="revCreditInput" value="15" min="0" step="0.5">
+            </div>
+          </div>
+          <div class="whatif-result" id="reverseResult"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Multi-semester plan -->
+    <div class="subpanel" data-whatif-panel="plan">
+      <section class="block">
+        <div class="section-head">
+          <div class="section-title">Multi-Semester Plan</div>
+          <div class="section-note">stack several semesters and project to graduation</div>
+        </div>
+        <div class="panel">
+          <div id="planRows"></div>
+          <div class="btn-row"><button class="btn ghost small" id="planAddBtn">+ Add planned semester</button></div>
+          <div class="whatif-result" id="planResult" style="margin-top:16px;"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Grade swap -->
+    <div class="subpanel" data-whatif-panel="swap">
+      <section class="block">
+        <div class="section-head">
+          <div class="section-title">Grade Swap</div>
+          <div class="section-note">try different grades in one or more courses at once, without editing your real record</div>
+        </div>
+        <div class="panel">
+          <div id="swapRows"></div>
+          <div class="btn-row" style="margin:0 0 16px;">
+            <button class="btn ghost small" id="swapAddBtn">+ Add swap</button>
+            <button class="btn ghost small" id="swapClearBtn">Clear all swaps</button>
+          </div>
+          <div class="whatif-result" id="swapResult"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS ============ -->
+  <div class="page" data-page="settings" id="page-settings">
+    <p class="page-lede">Programme configuration, grading scale, and how your data is saved.</p>
+
+    <section class="block">
+      <div class="section-head">
+        <div class="section-title">Programme Setup</div>
+        <div class="section-note">edit to match your curriculum</div>
+      </div>
+      <div class="setup-grid">
+        <div class="field">
+          <label for="totalCreditInput">Total required credit</label>
+          <input type="number" id="totalCreditInput" value="163" min="1" step="1">
+          <div class="field-hint">Full programme requirement</div>
+        </div>
+        <div class="field">
+          <label for="semCountInput">Number of semesters</label>
+          <input type="number" id="semCountInput" value="8" min="1" max="16" step="1">
+          <div class="field-hint">1–16 supported</div>
+        </div>
+        <div class="field">
+          <label for="targetCgpaInput">Target final CGPA (Earned)</label>
+          <input type="number" id="targetCgpaInput" value="3.80" min="0" max="4" step="0.01">
+          <div class="field-hint">Used across Dashboard &amp; Simulations</div>
+        </div>
+        <div class="field">
+          <label for="flagThresholdInput">Flag courses below (grade points)</label>
+          <input type="number" id="flagThresholdInput" value="3.25" min="0" max="4" step="0.01">
+          <div class="field-hint">Default 3.25 ≈ B+</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="section-head">
+        <div class="section-title">Grading Scale</div>
+        <div class="section-note">customize to match your institution — add, remove, or reweight grades</div>
+      </div>
+      <div class="panel">
+        <div id="gradeRows"></div>
+        <div class="btn-row"><button class="btn ghost small" id="gradeAddBtn">+ Add grade</button></div>
+        <p class="field-hint" style="margin-top:12px;">"Counts as earned credit" is unchecked by default only for a 0.00-point grade — check or uncheck any grade to match your institution's rules (e.g. some mark "Incomplete" or "Withdraw" as not earned too).</p>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="section-head">
+        <div class="section-title">Data &amp; Backup</div>
+        <div class="section-note">how your entries are kept</div>
+      </div>
+      <div class="storage-box">
+        <div class="sicon">◆</div>
+        <div>
+          <h4 id="storageTitle">Autosave is on</h4>
+          <p id="storageDesc">Every change here is saved automatically to this device, a moment after you stop typing — no button needed, nothing leaves your browser. Close the tab and come back later and your ledger will still be here.</p>
+          <div class="storage-meta" id="storageMeta">Checking storage…</div>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:18px;">
+        <button class="btn primary" id="exportBtn">↓ Export backup (.json)</button>
+        <button class="btn ghost" id="importBtn">↑ Load a backup</button>
+        <button class="btn danger" id="clearBtn">Reset everything</button>
+        <button class="btn ghost" id="seedBtn">↻ Load IIUC CSE default courses</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none;">
+      </div>
+      <p class="field-hint" style="margin-top:12px;max-width:60ch;">It's still a good habit to export a backup file every so often — especially before switching devices or browsers — since a backup file is the only copy you fully control.</p>
+    </section>
+
+    <section class="block">
+      <div class="section-head">
+        <div class="section-title">Cloud Sync</div>
+        <div class="section-note">Firebase · optional · works offline, and from a file opened on disk</div>
+      </div>
+      <div class="storage-box">
+        <div class="sicon">☁</div>
+        <div>
+          <h4 id="cloudTitle">Cloud sync</h4>
+          <p id="cloudDesc"></p>
+          <div class="storage-meta" id="cloudMeta"></div>
+        </div>
+      </div>
+      <div class="cloud-auth" id="cloudAuthBox" style="display:none;">
+        <div class="setup-grid">
+          <div class="field"><label for="cloudEmail">Email</label><input type="email" id="cloudEmail" autocomplete="email" placeholder="you@example.com"></div>
+          <div class="field"><label for="cloudPass">Password</label><input type="password" id="cloudPass" autocomplete="current-password" placeholder="min. 6 characters"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary" id="cloudSignIn">Sign in</button>
+          <button class="btn ghost" id="cloudSignUp">Create account</button>
+          <button class="btn ghost" id="cloudReset">Forgot password</button>
+        </div>
+      </div>
+      <div class="cloud-auth" id="cloudOutBox" style="display:none;">
+        <div class="btn-row"><button class="btn ghost" id="cloudSignOut">Sign out</button></div>
+      </div>
+      <div class="cloud-msg" id="cloudMsg" role="status"></div>
+    </section>
+  </div>
+
+</main>
+
+<footer>
+  <span id="footerScale"></span> — confirm this matches your institution's scale in Settings. A course that doesn't earn credit still counts as attempted (that's what pulls GPA down). Courses without a grade yet are ignored in every calculation. A retake's new grade replaces the original from the retake semester onward (grade-replacement). All figures are projections, not official records.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  var uid = 1;
+  function nextId(){ return uid++; }
+
+  function defaultGrades(){
+    return [
+      {g:"A+", p:4.00, earns:true},
+      {g:"A",  p:3.75, earns:true},
+      {g:"A-", p:3.50, earns:true},
+      {g:"B+", p:3.25, earns:true},
+      {g:"B",  p:3.00, earns:true},
+      {g:"B-", p:2.75, earns:true},
+      {g:"C+", p:2.50, earns:true},
+      {g:"C",  p:2.25, earns:true},
+      {g:"D",  p:2.00, earns:true},
+      {g:"F",  p:0.00, earns:false}
+    ];
+  }
+
+  function emptySemesters(){
+    var o = {};
+    for(var s=1;s<=16;s++) o[s]=[];
+    return o;
+  }
+
+  var CURRICULUM = {
+    1:[["CSE-1121","Computer Programming I",3,""],["CSE-1122","Computer Programming I Lab",1.5,""],["EEE-1121","Basic Electrical Engineering",3,""],["EEE-1122","Basic Electrical Engineering Lab",1.5,""],["MATH-1107","Mathematics I (Differential and Integral Calculus)",3,""],["PHY-1101","Physics I (Mechanics, Waves, Heat and Thermodynamics)",3,""],["UREL-1108","Advanced English",2,""],["UREM-1101","Text of Ethics and Morality",1,""]],
+    2:[["CSE-1221","Computer Programming II",3,"CSE-1121"],["CSE-1222","Computer Programming II Lab",1.5,""],["CSE-1223","Discrete Mathematics",3,""],["CSE-1230","Competitive Programming I",1,""],["EEE-1221","Electronics",3,"EEE-1121"],["EEE-1222","Electronics Lab",1.5,""],["MATH-1207","Mathematics II (Geometry and Differential Equations)",3,"MATH-1107"],["PHY-1201","Physics II (Electricity, Magnetism, Optics and Modern Physics)",3,"PHY-1101"],["PHY-1204","Physics II Lab (Electricity, Magnetism, Optics and Modern Physics)",1.5,""],["URED-1201","Basic Principles of Islam ('Aqidah + 'Ibadah)",2,""]],
+    3:[["CHEM-2301","Chemistry",3,""],["CHEM-2304","Chemistry Lab",1.5,""],["CSE-2321","Data Structures",3,"CSE-1121"],["CSE-2322","Data Structures Lab",1,""],["CSE-2323","Digital Logic Design",3,"EEE-1121"],["CSE-2324","Digital Logic Design Lab",1.5,""],["CSE-2325","Software Development I",2,"CSE-1121"],["MATH-2307","Mathematics III (Matrices, Linear System of Equations and Vector Analysis)",3,"MATH-1207"],["STAT-2311","Probability and Statistics",2,""],["URED-2302","Sciences of Quran and Hadith",1,""],["URED-2305","Comparative Religion",3,""]],
+    4:[["CSE-2421","Computer Algorithms",3,"CSE-2321"],["CSE-2422","Computer Algorithms Lab",1,""],["CSE-2423","Database Management Systems",3,""],["CSE-2424","Database Management Systems Lab",1.5,""],["CSE-2425","Theory of Computing",2,""],["CSE-2430","Competitive Programming II",1,""],["EEE-2421","Electrical Drives and Instrumentation",2,"EEE-1221"],["EEE-2422","Electrical Drives and Instrumentation Lab",1,""],["GEBL-2401","Bangla Language and Literature",2,""],["MATH-2407","Mathematics IV (Complex Variable, Fourier Analysis and Z-transform)",3,"MATH-2307"],["ME-2412","Engineering Drawing Lab",1,""],["ACC-2401","Financial and Managerial Accounting",2,""]],
+    5:[["CSE-3521","Computer Architecture",3,"CSE-2323"],["CSE-3523","Microprocessors, Microcontrollers and Embedded Systems",3,""],["CSE-3524","Microprocessors, Microcontrollers and Embedded Systems Lab",1,""],["CSE-3525","Data Communication",3,""],["CSE-3527","Compiler",3,"CSE-2425"],["CSE-3528","Compiler Lab",1,""],["CSE-3529","Systems Analysis and Design",3,""],["CSE-3532","Tools and Technologies for Internet Programming",2,"CSE-1222"],["URED-3503","Political Thoughts and Social Behavior",1,""]],
+    6:[["CSE-3631","Operating Systems",3,"CSE-3521"],["CSE-3632","Operating Systems Lab",1,""],["CSE-3633","Computer Networks",3,"CSE-3525"],["CSE-3634","Computer Networks Lab",1.5,""],["CSE-3635","Artificial Intelligence",3,""],["CSE-3636","Artificial Intelligence Lab",1,""],["CSE-3637","Software Engineering",3,"CSE-3529"],["CSE-3638","Software Engineering Lab",0.75,""],["CSE-3640","Software Development II Lab",0.75,"CSE-3532"],["URED-3604","Life and Teachings of Prophet Muhammad (SAAS)",1,""],["GEHE-3601","History of the Emergence of Bangladesh",2,""]],
+    7:[["CSE-4708","Field Work",1,""],["CSE-4741","Computer Graphics",3,"MATH-2307"],["CSE-4742","Computer Graphics Lab",1,""],["CSE-4743","Computer Security",2,""],["CSE-4744","Computer Security Lab",1,""],["CSE-4745","Numerical Methods",2,"CSE-1121"],["CSE-4746","Numerical Methods Lab",1,""],["CSE-4747","Mathematical Analysis for Computer Science",3,"STAT-2311"],["CSE-4750","Technical Writing and Presentation",1,""],["CSE-4800","Project / Thesis",4,""],["ECON-3501","Principles of Economics",2,""],["URIH-4701","A Survey of Islamic History and Culture",2,""]],
+    8:[["CSE-4805","Social, Professional and Ethical Issues in Computing",2,""],["CSE-4819","Special Topic on Computer Science and Engineering",3,""],["CSE-4820","Special Topic on Computer Science and Engineering Lab",1,""],["CSE-4822","General Viva",1,""],
+       ["CSE-4823","Fault Tolerant System",3,"CSE-3521"],["CSE-4824","Fault Tolerant System Lab",1,""],["CSE-4825","Basic Graph Theory",3,"CSE-2321"],["CSE-4826","Basic Graph Theory Lab",1,""],["CSE-4827","Simulation and Modeling",3,"MATH-3501"],["CSE-4828","Simulation and Modeling Lab",1,""],["CSE-4839","Digital System Design",3,""],["CSE-4840","Digital System Design Lab",1,""],["CSE-4843","Decision Support System and Expert System",3,""],["CSE-4844","Decision Support System Expert System Lab",1,""],["CSE-4845","Distributed Database",3,""],["CSE-4846","Distributed Database Lab",1,""],["CSE-4847","Software Project Management",3,""],["CSE-4848","Software Project Management Lab",1,""],["CSE-4849","Software Quality Assurance",3,""],["CSE-4850","Software Quality Assurance Lab",1,""],["CSE-4851","Wireless and Mobile Communication",3,""],["CSE-4852","Wireless and Mobile Communication Lab",1,""],["CSE-4853","Optical Fiber Communication",3,""],["CSE-4854","Optical Fiber Communication Lab",1,""],["CSE-4855","Communication Engineering",3,""],["CSE-4856","Communication Engineering Lab",1,""],["CSE-4857","VLSI Design",3,""],["CSE-4858","VLSI Design Lab",1,""],["CSE-4859","Real Time Embedded Systems",3,""],["CSE-4860","Real Time Embedded Systems Lab",1,""],["CSE-4861","Multimedia Theory",3,""],["CSE-4862","Multimedia Theory Lab",1,""],["CSE-4863","Digital Signal Processing",3,""],["CSE-4864","Digital Signal Processing Lab",1,""],["CSE-4865","Bioinformatics",3,""],["CSE-4866","Bioinformatics Lab",1,""],["CSE-4867","Speech and Language Processing",3,""],["CSE-4868","Speech and Language Processing Lab",1,""],["CSE-4869","Geographical Information System",3,""],["CSE-4870","Geographical Information System Lab",1,""],["CSE-4871","Neural Network and Fuzzy System",3,""],["CSE-4872","Neural Network and Fuzzy System Lab",1,""],["CSE-4873","Computer Vision and Robotics",3,""],["CSE-4874","Computer Vision and Robotics Lab",1,""],["CSE-4875","Pattern Recognition and Image Processing",3,""],["CSE-4876","Pattern Recognition and Image Processing Lab",1,""],["CSE-4877","Machine Learning and Data Mining",3,""],["CSE-4878","Machine Learning and Data Mining Lab",1,""],["CSE-4879","Computer Interfacing",3,""],["CSE-4880","Computer Interfacing Lab",1,""],["MGT-3601","Industrial Management",2,""]]
+  };
+  function curriculumSemesters(){
+    var o = emptySemesters();
+    Object.keys(CURRICULUM).forEach(function(k){
+      o[k] = CURRICULUM[k].map(function(r){
+        return {id:nextId(), code:r[0], name:r[1], credit:r[2], grade:"", prereq:r[3]||"", retakeOf:null};
+      });
+    });
+    return o;
+  }
+
+  function buildDefaultState(){
+    return {
+      totalCredit: 163,
+      targetCgpa: 3.80,
+      semesterCount: 8,
+      activeSem: 1,
+      flagThreshold: 3.25,
+      grades: defaultGrades(),
+      nextCredit: 15,
+      nextGpa: 3.75,
+      revTarget: 3.80,
+      revCredit: 15,
+      plan: [],
+      optTargetCgpa: 3.80,
+      optAssumedGrade: "A-",
+      swaps: [],
+      semesters: curriculumSemesters(),
+      curriculumSeeded: true,
+      updatedAt: 0
+    };
+  }
+
+  var state = buildDefaultState();
+
+  // ---------- Grade lookups ----------
+  function gradeEntry(letter){
+    for(var i=0;i<state.grades.length;i++){ if(state.grades[i].g===letter) return state.grades[i]; }
+    return null;
+  }
+  function gp(letter){ var e=gradeEntry(letter); return e? (parseFloat(e.p)||0) : 0; }
+  function gearns(letter){ var e=gradeEntry(letter); return e? !!e.earns : true; }
+  var gradeOverride = null;   // used by Grade swap preview only
+  function isGraded(g){ return !!g && !!gradeEntry(g); }
+  function cg(c){
+    if(gradeOverride && Object.prototype.hasOwnProperty.call(gradeOverride, c.id)) return gradeOverride[c.id];
+    return c.grade;
+  }
+  function lowGrade(c){ return isGraded(c.grade) && gp(c.grade) < state.flagThreshold - 1e-9; }
+  function courseById(id){
+    for(var s=1;s<=16;s++){
+      var f = semCourses(s).filter(function(c){ return c.id===id; })[0];
+      if(f) return f;
+    }
+    return null;
+  }
+  function semOfCourse(id){
+    for(var s=1;s<=16;s++){
+      if(semCourses(s).some(function(c){ return c.id===id; })) return s;
+    }
+    return 0;
+  }
+  function pointsText(c){ return isGraded(c.grade) ? fmt(gp(c.grade)*(parseFloat(c.credit)||0),2) : "—"; }
+  function defaultRetakeGrade(){
+    var best=null;
+    state.grades.forEach(function(e){
+      if(e.p<4.0-1e-9 && e.earns){ if(!best || e.p>best.p) best=e; }
+    });
+    if(!best && state.grades.length) best = state.grades[0];
+    return best? best.g : "A-";
+  }
+  function highestGrade(){
+    var best=null;
+    state.grades.forEach(function(e){ if(!best || e.p>best.p) best=e; });
+    return best? best.g : "A+";
+  }
+
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function fmt(n, d){ if(n==null || !isFinite(n)) return "—"; return n.toFixed(d==null?2:d); }
+  function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
+
+  function semCourses(semId){ return state.semesters[semId] || []; }
+
+  // ---------- Core compute: earned vs attempted ----------
+  function sumCourses(semId, skip){
+    var attempted=0, earned=0, points=0;
+    semCourses(semId).forEach(function(c){
+      var g = cg(c);
+      if(!isGraded(g)) return;          // not taken yet -> ignored
+      if(skip && skip[c.id]) return;    // replaced by a retake
+      var cr = parseFloat(c.credit)||0;
+      attempted += cr;
+      points += cr * gp(g);
+      if(gearns(g)) earned += cr;
+    });
+    return {attempted:attempted, earned:earned, points:points};
+  }
+
+  function computeSem(semId){
+    var r = sumCourses(semId, null);
+    r.gpaAttempted = r.attempted>0 ? r.points/r.attempted : NaN;
+    r.gpaEarned = r.earned>0 ? r.points/r.earned : NaN;
+    return r;
+  }
+
+  // courses replaced by a graded retake taken in a semester <= upTo
+  function supersededIds(upTo){
+    var map = {};
+    for(var s=1;s<=upTo;s++){
+      semCourses(s).forEach(function(c){
+        if(c.retakeOf!=null && isGraded(cg(c))) map[c.retakeOf] = true;
+      });
+    }
+    return map;
+  }
+
+  function computeCumulativeUpTo(semId){
+    var skip = supersededIds(semId), attempted=0, earned=0, points=0;
+    for(var s=1;s<=semId;s++){
+      var r = sumCourses(s, skip);
+      attempted += r.attempted; earned += r.earned; points += r.points;
+    }
+    return {
+      attempted:attempted, earned:earned, points:points,
+      cgpaAttempted: attempted>0 ? points/attempted : NaN,
+      cgpaEarned: earned>0 ? points/earned : NaN
+    };
+  }
+
+  function computeOverall(){ return computeCumulativeUpTo(state.semesterCount); }
+
+  function totalCoursesEntered(){
+    var n=0;
+    for(var s=1;s<=state.semesterCount;s++) n += semCourses(s).length;
+    return n;
+  }
+
+  function flaggedCourses(assumedPoint){
+    var list = [], sup = supersededIds(state.semesterCount);
+    for(var s=1;s<=state.semesterCount;s++){
+      semCourses(s).forEach(function(c){
+        var g = cg(c);
+        if(!isGraded(g) || sup[c.id]) return;
+        var p = gp(g);
+        if(p < state.flagThreshold - 1e-9){
+          var cr = parseFloat(c.credit)||0;
+          list.push({
+            sem:s, id:c.id, code:c.code||"(untitled)", name:c.name,
+            grade:g, credit:cr, pointValue:p,
+            earnsNow: gearns(g),
+            impact: (assumedPoint - p) * cr
+          });
+        }
+      });
+    }
+    list.sort(function(a,b){ return b.impact - a.impact; });
+    return list;
+  }
+
+  // ---------- Combinatorial optimizer ----------
+  function nCr(n,r){
+    if(r<0||r>n) return 0;
+    r=Math.min(r,n-r);
+    var result=1;
+    for(var i=0;i<r;i++){ result = result*(n-i)/(i+1); }
+    return result;
+  }
+
+  function combosOfSize(n, k){
+    var res=[];
+    function rec(start, combo){
+      if(combo.length===k){ res.push(combo.slice()); return; }
+      for(var i=start;i<n;i++){
+        combo.push(i);
+        rec(i+1, combo);
+        combo.pop();
+      }
+    }
+    rec(0, []);
+    return res;
+  }
+
+  function evalCombo(indices, flagged, assumedPoint, basePoints, baseEarned){
+    var addPoints=0, addEarned=0;
+    indices.forEach(function(i){
+      var f = flagged[i];
+      addPoints += f.credit * (assumedPoint - f.pointValue);
+      if(!f.earnsNow) addEarned += f.credit;
+    });
+    var newPoints = basePoints + addPoints;
+    var newEarned = baseEarned + addEarned;
+    return { points:newPoints, earned:newEarned, cgpa: newEarned>0 ? newPoints/newEarned : NaN };
+  }
+
+  var EXACT_COMBO_LIMIT = 30000;
+
+  function bestComboOfSize(flagged, k, assumedPoint, basePoints, baseEarned){
+    var n = flagged.length;
+    if(k<=0 || k>n) return null;
+    if(nCr(n,k) <= EXACT_COMBO_LIMIT){
+      var combos = combosOfSize(n, k);
+      var best = null;
+      combos.forEach(function(idxArr){
+        var r = evalCombo(idxArr, flagged, assumedPoint, basePoints, baseEarned);
+        if(!best || (isFinite(r.cgpa) && (!isFinite(best.cgpaVal) || r.cgpa>best.cgpaVal))){
+          best = {indices:idxArr, cgpaVal:r.cgpa};
+        }
+      });
+      return best;
+    }
+    // Greedy fallback for very large flagged lists
+    var order = flagged.map(function(f,i){ return i; })
+      .sort(function(a,b){ return flagged[b].impact - flagged[a].impact; });
+    var idxArr = order.slice(0,k);
+    var r = evalCombo(idxArr, flagged, assumedPoint, basePoints, baseEarned);
+    return {indices:idxArr, cgpaVal:r.cgpa};
+  }
+
+  // ---------- Verdict helper ----------
+  function verdictFor(requiredAvg, remaining){
+    if(remaining<=0){
+      return {cls:"ok", mark:"✓", title:"All credits already earned", text:"There are no remaining credits to plan for — your current CGPA is your final CGPA."};
+    }
+    if(requiredAvg > 4.001){
+      return {cls:"bad", mark:"✕", title:"No longer mathematically possible", text:"Even a perfect 4.00 in every remaining credit can't reach this target. Lower the target or fix earlier grades via retake."};
+    }
+    if(requiredAvg > 3.85){
+      return {cls:"bad", mark:"!", title:"Extremely tight", text:"You'd need close to a perfect top-grade average in every remaining semester, with zero room for a bad result. Treat this as a stretch target."};
+    }
+    if(requiredAvg > 3.60){
+      return {cls:"warn", mark:"~", title:"Challenging, but on the table", text:"You'd need a consistently strong average across the rest of your degree. Doable if you stay steady — one weak semester will hurt."};
+    }
+    if(requiredAvg > 3.20){
+      return {cls:"warn", mark:"~", title:"Achievable with steady effort", text:"A solid, consistent average gets you there. There's some margin for an off semester."};
+    }
+    return {cls:"ok", mark:"✓", title:"Comfortable margin", text:"Your target is well within reach even with an average performance from here."};
+  }
+
+  // ---------- Primary nav ----------
+  function goToPage(page){
+    document.querySelectorAll(".nav-tab").forEach(function(b){ b.classList.toggle("active", b.getAttribute("data-page")===page); });
+    document.querySelectorAll(".page").forEach(function(p){ p.classList.toggle("active", p.getAttribute("data-page")===page); });
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+  document.getElementById("primaryNav").addEventListener("click", function(e){
+    var btn = e.target.closest(".nav-tab");
+    if(!btn) return;
+    goToPage(btn.getAttribute("data-page"));
+  });
+
+  // ---------- Semester sub-tabs ----------
+  function renderTabs(){
+    var row = document.getElementById("tabsRow");
+    var html = "", sup = supersededIds(state.semesterCount);
+    for(var s=1;s<=state.semesterCount;s++){
+      var flagged = semCourses(s).some(function(c){ return lowGrade(c) && !sup[c.id]; });
+      html += '<div class="tab'+(s===state.activeSem?' active':'')+'" data-sem="'+s+'">Sem '+s+
+        (flagged?'<span class="tab-flag" title="has a flagged grade"></span>':'')+'</div>';
+    }
+    row.innerHTML = html;
+    document.getElementById("flagThresholdNote").textContent = "a red dot marks a semester with a grade below "+fmt(state.flagThreshold,2)+" pts";
+  }
+
+  function gradeOptionsHtml(selected, allowBlank){
+    var h = allowBlank ? '<option value=""'+(!selected?' selected':'')+'>— not taken —</option>' : '';
+    return h + state.grades.map(function(gr){
+      return '<option value="'+esc(gr.g)+'"'+(selected===gr.g?' selected':'')+'>'+esc(gr.g)+' ('+fmt(gr.p,2)+')</option>';
+    }).join("");
+  }
+
+  // ---------- Sample data (generic, non-personal demo) ----------
+  function loadSampleData(){
+    state.semesters[1] = [
+      {id:nextId(), code:"CORE-101", name:"Introduction to the Major", credit:3.00, grade:"B+"},
+      {id:nextId(), code:"CORE-102", name:"Foundations Lab", credit:1.50, grade:"A-"},
+      {id:nextId(), code:"MATH-101", name:"Calculus I", credit:3.00, grade:"C+"},
+      {id:nextId(), code:"GEN-101",  name:"Composition & Communication", credit:2.00, grade:"A"},
+      {id:nextId(), code:"SCI-101",  name:"General Science", credit:3.00, grade:"F"}
+    ];
+    state.semesters[2] = [
+      {id:nextId(), code:"CORE-201", name:"Core Concepts II", credit:3.00, grade:"A-"},
+      {id:nextId(), code:"MATH-201", name:"Calculus II", credit:3.00, grade:"B"},
+      {id:nextId(), code:"GEN-201",  name:"Ethics & Society", credit:2.00, grade:"A+"}
+    ];
+    state.activeSem = 1;
+  }
+
+  // ---------- Semester course table ----------
+  var retakeOpen = false;
+
+  function retakeCandidates(semId){
+    var taken = {}, out = [];
+    for(var s=1;s<=16;s++) semCourses(s).forEach(function(c){ if(c.retakeOf!=null) taken[c.retakeOf]=true; });
+    for(var t=1;t<semId;t++) semCourses(t).forEach(function(c){ if(!taken[c.id]) out.push({sem:t, c:c}); });
+    return out;
+  }
+  function moveOptionsHtml(cur){
+    var h = "";
+    for(var i=1;i<=state.semesterCount;i++) h += '<option value="'+i+'"'+(i===cur?' selected':'')+'>'+i+'</option>';
+    return h;
+  }
+
+  function renderSemesterPanel(){
+    var panel = document.getElementById("semesterPanel");
+    var semId = state.activeSem;
+    var courses = semCourses(semId);
+    var res = computeSem(semId);
+    var planned = 0;
+    courses.forEach(function(c){ planned += parseFloat(c.credit)||0; });
+
+    var rows = courses.map(function(c){
+      var low = lowGrade(c), tag = "";
+      if(c.retakeOf!=null){
+        var o = semOfCourse(c.retakeOf);
+        tag = '<div class="retake-tag">↻ Retake'+(o?' of Sem '+o:'')+'</div>';
+      }
+      return '<tr data-id="'+c.id+'">'+
+        '<td><input type="text" class="f-code" value="'+esc(c.code)+'" placeholder="Code" style="width:100px;">'+tag+'</td>'+
+        '<td><input type="text" class="f-name" value="'+esc(c.name)+'" placeholder="Course name" style="min-width:200px;"></td>'+
+        '<td><input type="text" class="f-prereq" value="'+esc(c.prereq||"")+'" placeholder="—" style="width:92px;"></td>'+
+        '<td class="num"><input type="number" class="f-credit" value="'+c.credit+'" min="0" step="0.25" style="width:70px;text-align:right;"></td>'+
+        '<td><select class="f-grade'+(low?' grade-below':'')+'">'+gradeOptionsHtml(c.grade, true)+'</select></td>'+
+        '<td class="num">'+pointsText(c)+'</td>'+
+        '<td><select class="f-move" title="Move this course to another semester" style="width:64px;">'+moveOptionsHtml(semId)+'</select></td>'+
+        '<td><button class="row-del" data-del="'+c.id+'" title="remove">✕</button></td>'+
+      '</tr>';
+    }).join("");
+
+    var showSample = courses.length===0 && totalCoursesEntered()===0;
+
+    var box = "";
+    if(retakeOpen){
+      var cands = retakeCandidates(semId);
+      if(!cands.length){
+        box = '<div class="retake-box"><span class="field-hint">'+(semId===1?'Semester 1 has no earlier semester to retake from.':'No earlier-semester course is available to retake (each course can be retaken once per chain).')+'</span> <button class="btn ghost small" id="retakeCancel">Close</button></div>';
+      } else {
+        var groups = [];
+        for(var t=1;t<semId;t++){
+          var opts = cands.filter(function(x){ return x.sem===t; }).map(function(x){
+            return '<option value="'+x.c.id+'">'+esc(x.c.code||"(untitled)")+(x.c.name?' — '+esc(x.c.name):'')+' — currently '+esc(x.c.grade||"not graded")+'</option>';
+          }).join("");
+          if(opts) groups.push('<optgroup label="Semester '+t+'">'+opts+'</optgroup>');
+        }
+        box = '<div class="retake-box"><div class="field"><label for="retakeSelect">Course to retake in Semester '+semId+'</label>'+
+          '<select id="retakeSelect">'+groups.join("")+'</select></div>'+
+          '<div class="btn-row"><button class="btn primary small" id="retakeConfirm">Add retake</button><button class="btn ghost small" id="retakeCancel">Cancel</button></div>'+
+          '<p class="field-hint">A retake row is added here with the same code, name and credit. Once you give it a grade, that grade replaces the original from this semester onward — earlier semesters keep their original history.</p></div>';
+      }
+    }
+
+    panel.innerHTML =
+      '<div class="panel-top">'+
+        '<div>'+
+          '<div class="section-note" style="margin-bottom:4px;">SEMESTER '+semId+'</div>'+
+          '<div style="font-family:Fraunces,serif;font-weight:600;font-size:19px;">'+ (courses.length? (courses.length+' course'+(courses.length>1?'s':'')+' · '+fmt(planned,2)+' credit hrs') : 'No courses added yet') +'</div>'+
+          '<div class="section-note" style="margin-top:4px;">'+(res.attempted>0 ? fmt(res.attempted,2)+' cr graded so far' : 'nothing graded yet — pick a grade as results arrive')+'</div>'+
+        '</div>'+
+        '<div class="stamp">'+
+          '<div class="stamp-label">Semester GPA</div>'+
+          '<div class="stamp-value">'+ (res.attempted>0? fmt(res.gpaAttempted,2) : '—') +'</div>'+
+        '</div>'+
+      '</div>'+
+      (courses.length ?
+        '<div class="table-wrap"><table>'+
+          '<thead><tr><th>Code</th><th>Course</th><th>Prereq</th><th style="text-align:right;">Credit</th><th>Grade</th><th style="text-align:right;">Points</th><th>Sem</th><th></th></tr></thead>'+
+          '<tbody>'+rows+'</tbody>'+
+        '</table></div>'
+        : '<div class="empty-state"><h4>Nothing here yet</h4><p>Add the courses for this semester — actual results, or planned/expected courses to simulate ahead.</p>'+
+          (showSample? '<button class="btn ghost small" id="sampleDataBtn">Try it with sample data</button>' : '')+
+          '</div>'
+      )+
+      '<div class="btn-row"><button class="btn" id="addRowBtn">+ Add course</button>'+
+        '<button class="btn ghost" id="retakeBtn"'+(semId===1?' title="Retakes come from an earlier semester"':'')+'>↻ Retake a course</button></div>'+
+      box;
+  }
+
+  // ---------- Dashboard ----------
+  function updateDashboard(){
+    var overall = computeOverall();
+    var remaining = state.totalCredit - overall.earned;
+    var assumedPoint = gp(state.optAssumedGrade);
+    var flagged = flaggedCourses(assumedPoint);
+
+    var alertHost = document.getElementById("dashAlert");
+    if(totalCoursesEntered()===0){
+      alertHost.innerHTML = '';
+    } else if(flagged.length){
+      var mandCount = 0;
+      flagged.forEach(function(f){ if(!f.earnsNow) mandCount++; });
+      alertHost.innerHTML = '<div class="mini-alert"><span>'+flagged.length+' course'+(flagged.length>1?'s':'')+' below '+fmt(state.flagThreshold,2)+' pts'+(mandCount?' · '+mandCount+' not earning credit':'')+' currently affecting your CGPA.</span>'+
+        '<button class="jump" data-jump-page="optimizer">Open Retake Optimizer →</button></div>';
+    } else {
+      alertHost.innerHTML = '<div class="mini-alert ok"><span>✓ No courses currently flagged below '+fmt(state.flagThreshold,2)+' pts.</span></div>';
+    }
+
+    var stamps = document.getElementById("heroStamps");
+    stamps.innerHTML =
+      '<div class="stamp-big earned"><div class="sl">CGPA (Earned)</div><div class="sv">'+(overall.earned>0?fmt(overall.cgpaEarned,3):'—')+'</div><div class="ss">Grade Points ÷ Earned Credits</div></div>'+
+      '<div class="stamp-big attempted"><div class="sl">CGPA (Attempted) / GPA</div><div class="sv">'+(overall.attempted>0?fmt(overall.cgpaAttempted,3):'—')+'</div><div class="ss">Grade Points ÷ Attempted Credits</div></div>';
+
+    var requiredTotalPoints = state.targetCgpa * state.totalCredit;
+    var neededPoints = requiredTotalPoints - overall.points;
+    var requiredAvg = remaining>0 ? neededPoints/remaining : NaN;
+
+    var grid = document.getElementById("dashStats");
+    function cell(k,v,cls){ return '<div class="stat-cell"><div class="k">'+k+'</div><div class="v'+(cls?' '+cls:'')+'">'+v+'</div></div>'; }
+    grid.innerHTML =
+      cell("Earned credits", fmt(overall.earned,1)) +
+      cell("Attempted credits", fmt(overall.attempted,1)) +
+      cell("Remaining credits", fmt(Math.max(remaining,0),1)) +
+      cell("Target CGPA", fmt(state.targetCgpa,2)) +
+      cell("Required avg. — rest of degree", remaining>0?fmt(requiredAvg,3):"—", (isFinite(requiredAvg)&&requiredAvg>3.6)?"emph":"good") +
+      cell("Flagged courses", flagged.length, flagged.length? "emph":"good");
+
+    var v = verdictFor(requiredAvg, remaining);
+    var box = document.getElementById("dashVerdict");
+    box.className = "verdict "+v.cls;
+    box.innerHTML = '<div class="vmark">'+v.mark+'</div><div class="vtext"><b>'+v.title+'</b>'+v.text+'</div>';
+  }
+
+  document.getElementById("dashAlert").addEventListener("click", function(e){
+    var btn = e.target.closest("[data-jump-page]");
+    if(!btn) return;
+    goToPage(btn.getAttribute("data-jump-page"));
+  });
+
+  function updateNavWarnDot(){
+    var flagged = flaggedCourses(gp(state.optAssumedGrade));
+    document.querySelector('.nav-tab[data-page="dashboard"]').classList.toggle("has-warn", flagged.length>0);
+    document.querySelector('.nav-tab[data-page="optimizer"]').classList.toggle("has-warn", flagged.length>0);
+  }
+
+  // ---------- Summary table (Dashboard) ----------
+  function updateSummaryTable(){
+    var tbl = document.getElementById("summaryTable");
+    var rows = "", any=false;
+    for(var s=1;s<=state.semesterCount;s++){
+      var res = computeSem(s);
+      if(res.attempted<=0) continue;
+      any=true;
+      var cum = computeCumulativeUpTo(s);
+      rows += '<tr><td>Semester '+s+'</td>'+
+        '<td class="num">'+fmt(res.earned,1)+'</td>'+
+        '<td class="num">'+fmt(res.attempted,1)+'</td>'+
+        '<td class="num">'+fmt(res.gpaAttempted,2)+'</td>'+
+        '<td class="num cgpa-cell">'+fmt(cum.cgpaEarned,3)+'</td>'+
+        '<td class="num cgpa-cell">'+fmt(cum.cgpaAttempted,3)+'</td></tr>';
+    }
+    tbl.innerHTML = '<thead><tr><th>Semester</th><th style="text-align:right;">Earned Cr.</th><th style="text-align:right;">Attempted Cr.</th><th style="text-align:right;">Sem GPA</th><th style="text-align:right;">CGPA (Earned)</th><th style="text-align:right;">CGPA (Attempted)</th></tr></thead>'+
+      '<tbody>'+(any?rows:'<tr><td colspan="6" class="empty-note">No graded semesters yet — set grades in the Semesters tab.</td></tr>')+'</tbody>';
+  }
+
+  // ---------- Retake panel (individual, ranked) ----------
+  function updateRetakePanel(flagged){
+    var host = document.getElementById("retakePanel");
+    if(flagged.length===0){
+      host.innerHTML = '<div class="panel"><div class="all-clear">✓ No courses currently below '+fmt(state.flagThreshold,2)+' pts — nothing flagged for retake right now.</div></div>';
+      return;
+    }
+    var items = flagged.map(function(f, i){
+      return '<div class="retake-item">'+
+        '<span class="badge">'+(!f.earnsNow?"NOT EARNING":"PRIORITY "+(i+1))+'</span>'+
+        '<span><span class="rname">'+esc(f.code)+(f.name?' — '+esc(f.name):'')+'</span><br>'+
+          '<span class="rmeta">Sem '+f.sem+' · currently '+esc(f.grade)+' · '+fmt(f.credit,1)+' cr'+(!f.earnsNow?' · not counted as earned credit':'')+'</span></span>'+
+        '<span class="rimpact">+'+fmt(f.impact,2)+' pts<br><span style="font-weight:400;color:var(--ink-faint);">if raised to '+esc(state.optAssumedGrade)+'</span></span>'+
+      '</div>';
+    }).join("");
+    host.innerHTML = '<div class="panel"><div class="retake-list">'+items+'</div>'+
+      '<div class="section-note" style="margin-top:14px;">To simulate a retake, change that course\'s grade directly in its Semester tab — everything here recalculates live.</div></div>';
+  }
+
+  // ---------- Retake Optimizer ----------
+  function populateOptGradeSelect(){
+    var sel = document.getElementById("optGradeInput");
+    sel.innerHTML = gradeOptionsHtml(state.optAssumedGrade);
+  }
+
+  function updateOptimizer(){
+    var overall = computeOverall();
+    var assumedPoint = gp(state.optAssumedGrade);
+    var flagged = flaggedCourses(assumedPoint);
+    var basePoints = overall.points, baseEarned = overall.earned;
+    var n = flagged.length;
+
+    var headlineHost = document.getElementById("comboHeadline");
+    var tableHost = document.getElementById("comboTable");
+
+    if(totalCoursesEntered()===0){
+      headlineHost.innerHTML = '<div class="empty-state"><h4>Add your courses first</h4><p>Once you\'ve entered semesters on the Semesters tab, the optimizer will find the smallest set of retakes to hit your target.</p></div>';
+      tableHost.innerHTML = '';
+      updateRetakePanel([]);
+      return;
+    }
+
+    if(n===0){
+      headlineHost.innerHTML = '<div class="all-clear">✓ No courses currently flagged below '+fmt(state.flagThreshold,2)+' pts — nothing to optimize.</div>';
+      tableHost.innerHTML = '';
+      updateRetakePanel([]);
+      return;
+    }
+
+    var target = state.optTargetCgpa;
+    var maxShow = Math.min(n, 8);
+    var rowsData = [];
+    var recommendedK = null;
+    for(var k=1;k<=maxShow;k++){
+      var best = bestComboOfSize(flagged, k, assumedPoint, basePoints, baseEarned);
+      if(!best) continue;
+      var reaches = isFinite(best.cgpaVal) && best.cgpaVal >= target - 1e-9;
+      if(reaches && recommendedK===null) recommendedK = k;
+      rowsData.push({k:k, best:best, reaches:reaches});
+    }
+
+    var rows = rowsData.map(function(rd){
+      var courseChips = rd.best.indices.map(function(i){ return esc(flagged[i].code); }).join(", ");
+      var hl = (rd.k===recommendedK);
+      return '<tr'+(hl?' class="row-highlight"':'')+'>'+
+        '<td>'+rd.k+'</td>'+
+        '<td>'+courseChips+'</td>'+
+        '<td class="num">'+(isFinite(rd.best.cgpaVal)?fmt(rd.best.cgpaVal,3):'—')+'</td>'+
+        '<td>'+(rd.reaches?'✓ reaches target':'—')+'</td>'+
+      '</tr>';
+    }).join("");
+    tableHost.innerHTML = '<thead><tr><th>Retakes</th><th>Best courses to retake</th><th style="text-align:right;">Resulting CGPA (Earned)</th><th>Target</th></tr></thead><tbody>'+rows+'</tbody>';
+
+    if(recommendedK!==null){
+      var rd = rowsData.filter(function(r){ return r.k===recommendedK; })[0];
+      var chips = rd.best.indices.map(function(i){ return '<span class="chip">'+esc(flagged[i].code)+'</span>'; }).join('');
+      headlineHost.innerHTML =
+        '<div class="combo-headline">'+
+          '<div><div class="chl">Recommended</div><div class="chn">'+recommendedK+'</div></div>'+
+          '<div class="cht">Retake just <b>'+recommendedK+' course'+(recommendedK>1?'s':'')+'</b> — '+chips+' — assuming <b>'+esc(state.optAssumedGrade)+'</b> each, to reach <b>'+fmt(target,2)+' CGPA (Earned)</b>. Resulting CGPA: <b>'+fmt(rd.best.cgpaVal,3)+'</b>.</div>'+
+        '</div>';
+    } else {
+      var lastRow = rowsData[rowsData.length-1];
+      var gapMsg = lastRow ? ('Retaking all '+lastRow.k+' flagged course'+(lastRow.k>1?'s':'')+' (assuming '+esc(state.optAssumedGrade)+' each) still only reaches <b>'+fmt(lastRow.best.cgpaVal,3)+'</b>.') : '';
+      headlineHost.innerHTML =
+        '<div class="combo-headline" style="background:var(--red-soft);border-color:var(--red);">'+
+          '<div><div class="chl" style="color:var(--red);">Not reachable by retakes alone</div><div class="chn" style="color:var(--red);">✕</div></div>'+
+          '<div class="cht">'+gapMsg+' You will also need strong grades in upcoming semesters — see <b>Simulations → Multi-semester plan</b>.</div>'+
+        '</div>';
+    }
+
+    updateRetakePanel(flagged);
+  }
+
+  // ---------- What-if: sub-tab switching ----------
+  document.getElementById("whatifSubtabs").addEventListener("click", function(e){
+    var btn = e.target.closest(".subtab");
+    if(!btn) return;
+    var key = btn.getAttribute("data-whatif");
+    document.querySelectorAll("#whatifSubtabs .subtab").forEach(function(b){ b.classList.toggle("active", b===btn); });
+    document.querySelectorAll(".subpanel").forEach(function(p){ p.classList.toggle("active", p.getAttribute("data-whatif-panel")===key); });
+  });
+
+  // ---------- What-if A: Next semester ----------
+  function updateWhatIfNext(){
+    var overall = computeOverall();
+    var nc = state.nextCredit, ng = state.nextGpa;
+    var nextEarned = ng>0 ? nc : 0; // a simulated 0.00 is treated as a fail — not earned
+    var newEarned = overall.earned + nextEarned;
+    var newPoints = overall.points + (nc*ng);
+    var newCgpaEarned = newEarned>0 ? newPoints/newEarned : NaN;
+    var remainingAfter = state.totalCredit - newEarned;
+    var requiredTotalPoints = state.targetCgpa * state.totalCredit;
+    var neededAfter = requiredTotalPoints - newPoints;
+    var requiredAvgAfter = remainingAfter>0 ? neededAfter/remainingAfter : NaN;
+
+    var html = 'Score <b>'+fmt(ng,2)+' GPA</b> across <b>'+fmt(nc,1)+' credits</b> next semester → your CGPA (Earned) becomes <b>'+(newEarned>0?fmt(newCgpaEarned,3):'—')+'</b>.';
+    var cls = "";
+    if(remainingAfter>0){
+      html += '<br>After that, to still land on <b>'+fmt(state.targetCgpa,2)+'</b>, the average across your remaining <b>'+fmt(remainingAfter,1)+' credits</b> needs to be <b>'+fmt(requiredAvgAfter,3)+'</b>.';
+      if(requiredAvgAfter>4.0){ html += ' <span>That exceeds 4.00 — the target would already be out of reach.</span>'; cls="bad"; }
+    } else {
+      html += '<br>That would complete your full '+fmt(state.totalCredit,0)+'-credit programme.';
+      cls = newCgpaEarned>=state.targetCgpa ? "hl" : "bad";
+    }
+    var el = document.getElementById("whatifResult");
+    el.className = "whatif-result"+(cls?" "+cls:"");
+    el.innerHTML = html;
+  }
+
+  // ---------- What-if B: reverse solve ----------
+  function updateReverseSolve(){
+    var overall = computeOverall();
+    var target = state.revTarget, credit = state.revCredit;
+    var el = document.getElementById("reverseResult");
+    if(credit<=0){
+      el.className = "whatif-result";
+      el.innerHTML = "Enter a credit hour value greater than 0 for that semester.";
+      return;
+    }
+    var newEarnedDenom = overall.earned + credit;
+    var requiredPoints = target*newEarnedDenom - overall.points;
+    var requiredGpa = requiredPoints/credit;
+    if(requiredGpa <= 0){
+      el.className = "whatif-result hl";
+      el.innerHTML = "You're already on pace — even a <b>0.00</b> that semester wouldn't drop you below <b>"+fmt(target,2)+'</b> (though obviously don\'t aim for that). Any positive GPA keeps you ahead.';
+    } else if(requiredGpa > 4.0){
+      el.className = "whatif-result bad";
+      el.innerHTML = "Not achievable in a single semester of <b>"+fmt(credit,1)+" credits</b> — you'd need <b>"+fmt(requiredGpa,3)+" GPA</b>, above the 4.00 ceiling. Spread the climb across multiple semesters using the <b>Multi-semester plan</b> tab instead.";
+    } else {
+      el.className = "whatif-result hl";
+      el.innerHTML = "You need at least <b>"+fmt(requiredGpa,3)+" GPA</b> across those <b>"+fmt(credit,1)+" credits</b> to reach <b>"+fmt(target,2)+" CGPA (Earned)</b> by the end of that semester.";
+    }
+  }
+
+  // ---------- What-if C: multi-semester plan ----------
+  function renderPlanRows(){
+    var host = document.getElementById("planRows");
+    if(state.plan.length===0){
+      host.innerHTML = '<p class="empty-note">No planned semesters yet — add one below to start projecting.</p>';
+      return;
+    }
+    host.innerHTML = state.plan.map(function(row, i){
+      return '<div class="plan-row" data-idx="'+i+'">'+
+        '<span class="lbl">Planned Semester '+(state.semesterCount+i+1)+'</span>'+
+        '<input type="number" class="plan-credit" value="'+row.credit+'" min="0" step="0.5" title="Credit hours">'+
+        '<input type="number" class="plan-gpa" value="'+row.gpa+'" min="0" max="4" step="0.01" title="Expected GPA">'+
+        '<button class="row-del" data-plandel="'+i+'" title="remove">✕</button>'+
+      '</div>';
+    }).join("");
+  }
+
+  function updatePlanResult(){
+    var el = document.getElementById("planResult");
+    var overall = computeOverall();
+    if(state.plan.length===0){
+      el.className = "whatif-result";
+      el.innerHTML = "Add at least one planned semester above to see a projection.";
+      return;
+    }
+    var earned = overall.earned, points = overall.points;
+    var lines = [];
+    state.plan.forEach(function(row, i){
+      var cr = parseFloat(row.credit)||0, g = parseFloat(row.gpa)||0;
+      earned += (g>0 ? cr : 0);
+      points += cr*g;
+      var cgpa = earned>0 ? points/earned : NaN;
+      lines.push('Semester '+(state.semesterCount+i+1)+' ('+fmt(cr,1)+' cr @ '+fmt(g,2)+') → CGPA (Earned) <b>'+fmt(cgpa,3)+'</b>');
+    });
+    var finalCgpa = earned>0 ? points/earned : NaN;
+    var meets = isFinite(finalCgpa) && finalCgpa >= state.targetCgpa - 1e-9;
+    var html = lines.join('<br>') + '<br><br>Final projected CGPA (Earned): <b>'+fmt(finalCgpa,3)+'</b> — ' +
+      (meets ? 'meets your target of <b>'+fmt(state.targetCgpa,2)+'</b>.' : 'still short of your target of <b>'+fmt(state.targetCgpa,2)+'</b> by <b>'+fmt(state.targetCgpa-finalCgpa,3)+'</b>.');
+    el.className = "whatif-result"+(meets?" hl":" bad");
+    el.innerHTML = html;
+  }
+
+  document.getElementById("planAddBtn").addEventListener("click", function(){
+    state.plan.push({credit:15, gpa:3.75});
+    renderPlanRows();
+    updatePlanResult();
+    scheduleSave();
+  });
+  document.getElementById("planRows").addEventListener("input", function(e){
+    var row = e.target.closest(".plan-row");
+    if(!row) return;
+    var idx = parseInt(row.getAttribute("data-idx"),10);
+    if(e.target.classList.contains("plan-credit")) state.plan[idx].credit = parseFloat(e.target.value)||0;
+    if(e.target.classList.contains("plan-gpa")) state.plan[idx].gpa = parseFloat(e.target.value)||0;
+    updatePlanResult();
+    scheduleSave();
+  });
+  document.getElementById("planRows").addEventListener("click", function(e){
+    var del = e.target.closest("[data-plandel]");
+    if(!del) return;
+    state.plan.splice(parseInt(del.getAttribute("data-plandel"),10),1);
+    renderPlanRows();
+    updatePlanResult();
+    scheduleSave();
+  });
+
+  // ---------- What-if D: grade swap ----------
+  function swapKey(sw){ return sw.semId+":"+sw.courseId; }
+  function findCourse(semId, courseId){
+    var s = semOfCourse(courseId);
+    if(!s || s>state.semesterCount) return null;
+    return courseById(courseId);
+  }
+  function migrateSwaps(loaded){
+    if(Array.isArray(loaded.swaps)){
+      return loaded.swaps.filter(function(x){ return x && x.semId!=null && x.courseId!=null; })
+        .map(function(x){ return {semId:parseInt(x.semId,10), courseId:parseInt(x.courseId,10), grade:x.grade||null}; });
+    }
+    // older backups had a single swap
+    if(loaded.swapSemId!=null && loaded.swapCourseId!=null){
+      return [{semId:loaded.swapSemId, courseId:loaded.swapCourseId, grade:loaded.swapGrade||null}];
+    }
+    return [];
+  }
+  function swapCourseOptionsHtml(selectedKey, usedKeys){
+    var groups = [];
+    for(var s=1;s<=state.semesterCount;s++){
+      var courses = semCourses(s);
+      if(!courses.length) continue;
+      var opts = courses.map(function(c){
+        var val = s+":"+c.id;
+        var dis = (val!==selectedKey && usedKeys.indexOf(val)>-1);
+        return '<option value="'+val+'"'+(val===selectedKey?' selected':'')+(dis?' disabled':'')+'>'+
+          esc(c.code||"(untitled)")+(c.name?' — '+esc(c.name):'')+' — currently '+esc(c.grade||"not graded")+(dis?' (already added)':'')+'</option>';
+      }).join("");
+      groups.push('<optgroup label="Semester '+s+'">'+opts+'</optgroup>');
+    }
+    return groups.join("");
+  }
+
+  function populateSwapSelects(){
+    // drop swaps whose course was deleted; repair grades missing from the scale
+    state.swaps = state.swaps.filter(function(sw){ var c = findCourse(sw.semId, sw.courseId); if(c) sw.semId = semOfCourse(sw.courseId); return !!c; });
+    state.swaps.forEach(function(sw){ if(!sw.grade || !gradeEntry(sw.grade)) sw.grade = highestGrade(); });
+    var host = document.getElementById("swapRows");
+    if(!state.swaps.length){
+      host.innerHTML = '<p class="empty-note">No swaps yet — tap "+ Add swap" to try a different grade in a course.</p>';
+      return;
+    }
+    var used = state.swaps.map(swapKey);
+    host.innerHTML = state.swaps.map(function(sw, i){
+      return '<div class="swap-row" data-sidx="'+i+'">'+
+        '<select class="swap-course" aria-label="Course">'+swapCourseOptionsHtml(swapKey(sw), used)+'</select>'+
+        '<select class="swap-grade" aria-label="New hypothetical grade">'+gradeOptionsHtml(sw.grade)+'</select>'+
+        '<button class="row-del" data-swapdel="'+i+'" title="remove">✕</button>'+
+      '</div>';
+    }).join("");
+  }
+
+  function updateSwapResult(){
+    var el = document.getElementById("swapResult");
+    if(totalCoursesEntered()===0){
+      el.className = "whatif-result";
+      el.innerHTML = "Add a course on the Semesters tab first, then try swapping its grade here.";
+      return;
+    }
+    if(!state.swaps.length){
+      el.className = "whatif-result";
+      el.innerHTML = "Add one or more swaps above to preview the combined effect on your CGPA.";
+      return;
+    }
+    var before = computeOverall();
+    var sup = supersededIds(state.semesterCount);
+    var ov = {}, lines = [];
+    state.swaps.forEach(function(sw){
+      var course = findCourse(sw.semId, sw.courseId);
+      if(!course) return;
+      ov[course.id] = sw.grade;
+      lines.push('• <b>'+esc(course.code||"(untitled)")+'</b> (Sem '+sw.semId+', '+fmt(parseFloat(course.credit)||0,1)+' cr): '+esc(course.grade||"not graded")+' → <b>'+esc(sw.grade)+'</b>'+
+        (sup[course.id] ? ' <i>(already replaced by a retake — no effect)</i>' : ''));
+    });
+    var after;
+    gradeOverride = ov;
+    try{ after = computeOverall(); } finally { gradeOverride = null; }
+    var deltaEarned = after.cgpaEarned - before.cgpaEarned;
+    var good = isFinite(deltaEarned) ? deltaEarned>=0 : true;
+    var arrowE = deltaEarned>=0 ? "▲" : "▼";
+
+    el.className = "whatif-result"+(good?" hl":" bad");
+    el.innerHTML =
+      '<b>'+state.swaps.length+' swap'+(state.swaps.length>1?'s':'')+'</b> applied together:<br>'+
+      lines.join('<br>')+'<br><br>'+
+      'CGPA (Earned): '+fmt(before.cgpaEarned,3)+' → <b>'+fmt(after.cgpaEarned,3)+'</b>'+(isFinite(deltaEarned)?' ('+arrowE+' '+fmt(Math.abs(deltaEarned),3)+')':'')+'<br>'+
+      'CGPA (Attempted) / GPA: '+fmt(before.cgpaAttempted,3)+' → <b>'+fmt(after.cgpaAttempted,3)+'</b><br>'+
+      '<span style="color:var(--ink-faint);font-size:12px;">This is a preview only — nothing is changed in your real record.</span>';
+  }
+
+  function swapChanged(){
+    populateSwapSelects();
+    updateSwapResult();
+    scheduleSave();
+  }
+
+  document.getElementById("swapAddBtn").addEventListener("click", function(){
+    var used = state.swaps.map(swapKey), pick = null;
+    for(var s=1;s<=state.semesterCount && !pick;s++){
+      semCourses(s).forEach(function(c){
+        if(!pick && used.indexOf(s+":"+c.id)===-1) pick = {semId:s, courseId:c.id, grade:highestGrade()};
+      });
+    }
+    if(!pick){
+      var el = document.getElementById("swapResult");
+      el.className = "whatif-result";
+      el.innerHTML = totalCoursesEntered()===0 ? "Add a course on the Semesters tab first." : "Every course is already in your swap list.";
+      return;
+    }
+    state.swaps.push(pick);
+    swapChanged();
+  });
+  document.getElementById("swapClearBtn").addEventListener("click", function(){
+    state.swaps = [];
+    swapChanged();
+  });
+  document.getElementById("swapRows").addEventListener("change", function(e){
+    var row = e.target.closest(".swap-row");
+    if(!row) return;
+    var sw = state.swaps[parseInt(row.getAttribute("data-sidx"),10)];
+    if(!sw) return;
+    if(e.target.classList.contains("swap-course")){
+      var v = e.target.value.split(":");
+      sw.semId = parseInt(v[0],10); sw.courseId = parseInt(v[1],10);
+    }
+    if(e.target.classList.contains("swap-grade")) sw.grade = e.target.value;
+    swapChanged();
+  });
+  document.getElementById("swapRows").addEventListener("click", function(e){
+    var del = e.target.closest("[data-swapdel]");
+    if(!del) return;
+    state.swaps.splice(parseInt(del.getAttribute("data-swapdel"),10),1);
+    swapChanged();
+  });
+
+  // ---------- Grading scale editor ----------
+  function renderGradeRows(){
+    var host = document.getElementById("gradeRows");
+    host.innerHTML = state.grades.map(function(gr, i){
+      return '<div class="grade-row" data-gidx="'+i+'">'+
+        '<input type="text" class="g-label" value="'+esc(gr.g)+'" placeholder="Label" maxlength="4">'+
+        '<input type="number" class="g-points" value="'+gr.p+'" min="0" max="4" step="0.01">'+
+        '<label class="earns-toggle"><input type="checkbox" class="g-earns"'+(gr.earns?' checked':'')+'> Counts as earned credit</label>'+
+        '<button class="row-del" data-gdel="'+i+'" title="remove"'+(state.grades.length<=1?' disabled':'')+'>✕</button>'+
+      '</div>';
+    }).join("");
+  }
+
+  function refreshAfterGradeScaleChange(){
+    renderGradeRows();
+    renderSemesterPanel();
+    populateOptGradeSelect();
+    populateSwapSelects();
+    renderStructuralOutputs();
+    scheduleSave();
+  }
+
+  document.getElementById("gradeAddBtn").addEventListener("click", function(){
+    state.grades.push({g:"", p:0, earns:true});
+    refreshAfterGradeScaleChange();
+  });
+  document.getElementById("gradeRows").addEventListener("input", function(e){
+    var row = e.target.closest(".grade-row");
+    if(!row) return;
+    var idx = parseInt(row.getAttribute("data-gidx"),10);
+    if(e.target.classList.contains("g-label")) state.grades[idx].g = e.target.value.trim();
+    if(e.target.classList.contains("g-points")) state.grades[idx].p = parseFloat(e.target.value)||0;
+    renderSemesterPanel();
+    populateOptGradeSelect();
+    populateSwapSelects();
+    renderStructuralOutputs();
+    scheduleSave();
+  });
+  document.getElementById("gradeRows").addEventListener("change", function(e){
+    var row = e.target.closest(".grade-row");
+    if(!row) return;
+    var idx = parseInt(row.getAttribute("data-gidx"),10);
+    if(e.target.classList.contains("g-earns")) state.grades[idx].earns = e.target.checked;
+    refreshAfterGradeScaleChange();
+  });
+  document.getElementById("gradeRows").addEventListener("click", function(e){
+    var del = e.target.closest("[data-gdel]");
+    if(!del || state.grades.length<=1) return;
+    state.grades.splice(parseInt(del.getAttribute("data-gdel"),10),1);
+    refreshAfterGradeScaleChange();
+  });
+
+  function updateFooterScale(){
+    document.getElementById("footerScale").textContent =
+      "Grading scale: " + state.grades.map(function(g){ return esc(g.g)+" "+fmt(g.p,2); }).join(" · ");
+  }
+
+  // ---------- Master refresh ----------
+  function renderStructuralOutputs(){
+    updateDashboard();
+    updateSummaryTable();
+    updateOptimizer();
+    updateWhatIfNext();
+    updateReverseSolve();
+    updatePlanResult();
+    updateSwapResult();
+    updateNavWarnDot();
+    renderTabs();
+    updateFooterScale();
+  }
+
+  function renderStructural(){
+    state.activeSem = clamp(state.activeSem, 1, state.semesterCount);
+    renderTabs();
+    renderSemesterPanel();
+    populateOptGradeSelect();
+    renderPlanRows();
+    populateSwapSelects();
+    document.getElementById("optTargetInput").value = state.optTargetCgpa;
+    document.getElementById("optGradeInput").value = state.optAssumedGrade;
+    renderGradeRows();
+    renderStructuralOutputs();
+  }
+
+  // ---------- Events: semester tabs & panel ----------
+  document.getElementById("tabsRow").addEventListener("click", function(e){
+    var t = e.target.closest(".tab");
+    if(!t) return;
+    state.activeSem = parseInt(t.getAttribute("data-sem"),10);
+    retakeOpen = false;
+    renderTabs();
+    renderSemesterPanel();
+  });
+
+  document.getElementById("semesterPanel").addEventListener("click", function(e){
+    function afterEdit(){
+      renderTabs();
+      renderSemesterPanel();
+      renderStructuralOutputs();
+      populateSwapSelects();
+      updateSwapResult();
+      scheduleSave();
+    }
+    if(e.target.id === "addRowBtn"){
+      semCourses(state.activeSem).push({id:nextId(), code:"", name:"", credit:3.0, grade:"", prereq:"", retakeOf:null});
+      afterEdit();
+      return;
+    }
+    if(e.target.id === "retakeBtn"){ retakeOpen = !retakeOpen; renderSemesterPanel(); return; }
+    if(e.target.id === "retakeCancel"){ retakeOpen = false; renderSemesterPanel(); return; }
+    if(e.target.id === "retakeConfirm"){
+      var sel = document.getElementById("retakeSelect");
+      var orig = sel ? courseById(parseInt(sel.value,10)) : null;
+      if(!orig) return;
+      semCourses(state.activeSem).push({id:nextId(), code:orig.code, name:orig.name, credit:orig.credit, grade:"", prereq:orig.prereq||"", retakeOf:orig.id});
+      retakeOpen = false;
+      afterEdit();
+      return;
+    }
+    if(e.target.id === "sampleDataBtn"){
+      loadSampleData();
+      renderStructural();
+      scheduleSave();
+      return;
+    }
+    var del = e.target.closest("[data-del]");
+    if(del){
+      var id = parseInt(del.getAttribute("data-del"),10);
+      state.semesters[state.activeSem] = semCourses(state.activeSem).filter(function(c){ return c.id!==id; });
+      afterEdit();
+    }
+  });
+
+  function moveCourse(course, from, to){
+    if(to===from || !(to>=1 && to<=state.semesterCount)) return;
+    var bad = "";
+    if(course.retakeOf!=null){
+      var o = semOfCourse(course.retakeOf);
+      if(o && to<=o) bad = "A retake must be in a later semester than the original course (Sem "+o+").";
+    }
+    for(var s=1;s<=16 && !bad;s++){
+      semCourses(s).forEach(function(r){ if(r.retakeOf===course.id && s<=to) bad = "This course has a retake in Sem "+s+", so it must stay in an earlier semester than that."; });
+    }
+    if(bad){ alert(bad); renderSemesterPanel(); return; }
+    state.semesters[from] = semCourses(from).filter(function(c){ return c.id!==course.id; });
+    if(!state.semesters[to]) state.semesters[to] = [];
+    state.semesters[to].push(course);
+    renderTabs();
+    renderSemesterPanel();
+    renderStructuralOutputs();
+    populateSwapSelects();
+    updateSwapResult();
+    scheduleSave();
+  }
+
+  document.getElementById("semesterPanel").addEventListener("input", function(e){
+    var tr = e.target.closest("tr[data-id]");
+    if(!tr) return;
+    var id = parseInt(tr.getAttribute("data-id"),10);
+    var course = semCourses(state.activeSem).filter(function(c){ return c.id===id; })[0];
+    if(!course) return;
+    if(e.target.classList.contains("f-code")) course.code = e.target.value;
+    if(e.target.classList.contains("f-name")) course.name = e.target.value;
+    if(e.target.classList.contains("f-prereq")) course.prereq = e.target.value;
+    if(e.target.classList.contains("f-credit")) course.credit = parseFloat(e.target.value)||0;
+    renderStructuralOutputs();
+    var res = computeSem(state.activeSem);
+    var pointsCell = tr.children[5];
+    if(pointsCell) pointsCell.textContent = pointsText(course);
+    var stampVal = document.querySelector("#semesterPanel .stamp-value");
+    if(stampVal) stampVal.textContent = res.attempted>0 ? fmt(res.gpaAttempted,2) : "—";
+    populateSwapSelects();
+    updateSwapResult();
+    scheduleSave();
+  });
+
+  document.getElementById("semesterPanel").addEventListener("change", function(e){
+    var tr = e.target.closest("tr[data-id]");
+    if(!tr) return;
+    var id = parseInt(tr.getAttribute("data-id"),10);
+    var course = semCourses(state.activeSem).filter(function(c){ return c.id===id; })[0];
+    if(!course) return;
+    if(e.target.classList.contains("f-move")){
+      moveCourse(course, state.activeSem, parseInt(e.target.value,10));
+      return;
+    }
+    if(e.target.classList.contains("f-grade")){
+      course.grade = e.target.value;
+      e.target.classList.toggle("grade-below", lowGrade(course));
+    }
+    renderStructuralOutputs();
+    var res = computeSem(state.activeSem);
+    var pointsCell = tr.children[5];
+    if(pointsCell) pointsCell.textContent = pointsText(course);
+    renderSemesterPanel();
+    renderTabs();
+    populateSwapSelects();
+    updateSwapResult();
+    scheduleSave();
+  });
+
+  // ---------- Settings & simulation inputs ----------
+  document.getElementById("totalCreditInput").addEventListener("input", function(e){
+    state.totalCredit = parseFloat(e.target.value)||0;
+    renderStructuralOutputs();
+    scheduleSave();
+  });
+  document.getElementById("semCountInput").addEventListener("input", function(e){
+    var v = clamp(parseInt(e.target.value,10)||1, 1, 16);
+    state.semesterCount = v;
+    state.activeSem = clamp(state.activeSem, 1, v);
+    renderTabs();
+    renderSemesterPanel();
+    renderPlanRows();
+    populateSwapSelects();
+    renderStructuralOutputs();
+    scheduleSave();
+  });
+  document.getElementById("targetCgpaInput").addEventListener("input", function(e){
+    state.targetCgpa = parseFloat(e.target.value)||0;
+    renderStructuralOutputs();
+    scheduleSave();
+  });
+  document.getElementById("flagThresholdInput").addEventListener("input", function(e){
+    state.flagThreshold = parseFloat(e.target.value)||0;
+    renderTabs();
+    renderSemesterPanel();
+    renderStructuralOutputs();
+    scheduleSave();
+  });
+  document.getElementById("optTargetInput").addEventListener("input", function(e){
+    state.optTargetCgpa = parseFloat(e.target.value)||0;
+    updateOptimizer();
+    scheduleSave();
+  });
+  document.getElementById("optGradeInput").addEventListener("change", function(e){
+    state.optAssumedGrade = e.target.value;
+    updateOptimizer();
+    updateNavWarnDot();
+    scheduleSave();
+  });
+  document.getElementById("nextCreditInput").addEventListener("input", function(e){
+    state.nextCredit = parseFloat(e.target.value)||0;
+    updateWhatIfNext();
+    scheduleSave();
+  });
+  document.getElementById("nextGpaInput").addEventListener("input", function(e){
+    state.nextGpa = parseFloat(e.target.value)||0;
+    updateWhatIfNext();
+    scheduleSave();
+  });
+  document.getElementById("revTargetInput").addEventListener("input", function(e){
+    state.revTarget = parseFloat(e.target.value)||0;
+    updateReverseSolve();
+    scheduleSave();
+  });
+  document.getElementById("revCreditInput").addEventListener("input", function(e){
+    state.revCredit = parseFloat(e.target.value)||0;
+    updateReverseSolve();
+    scheduleSave();
+  });
+
+  // ---------- Export / Import / Clear ----------
+  document.getElementById("exportBtn").addEventListener("click", function(){
+    var blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "academic-ledger.json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  });
+  document.getElementById("importBtn").addEventListener("click", function(){
+    document.getElementById("importFile").click();
+  });
+  document.getElementById("importFile").addEventListener("change", function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      try{
+        var loaded = JSON.parse(ev.target.result);
+        if(loaded && loaded.semesters){
+          state = normalizeLoaded(loaded);
+          maybeSeed();
+          syncSettingsInputs();
+          renderStructural();
+          scheduleSave();
+        } else {
+          alert("This file doesn't look like a ledger backup.");
+        }
+      } catch(err){
+        alert("Couldn't read that file: "+err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  });
+  document.getElementById("clearBtn").addEventListener("click", function(){
+    if(!confirm("Reset everything (grades, settings, grading scale) back to the default IIUC CSE course list? If you are signed in, the cloud copy is reset too. This can't be undone.")) return;
+    state = buildDefaultState();
+    syncSettingsInputs();
+    renderStructural();
+    scheduleSave();
+  });
+
+  function maybeSeed(){
+    // first run on a device that has no courses yet -> start from the default IIUC CSE curriculum
+    if(!state.curriculumSeeded && totalCoursesEntered()===0){
+      state.semesters = curriculumSemesters();
+      state.curriculumSeeded = true;
+    }
+  }
+
+  document.getElementById("seedBtn").addEventListener("click", function(){
+    if(!confirm("Replace ALL semester courses and grades with the default IIUC CSE course list? Your settings and grading scale are kept. If you are signed in, the cloud copy is replaced too. This can't be undone.")) return;
+    state.semesters = curriculumSemesters();
+    state.swaps = [];
+    state.curriculumSeeded = true;
+    state.semesterCount = Math.max(state.semesterCount, 8);
+    state.activeSem = 1;
+    retakeOpen = false;
+    syncSettingsInputs();
+    renderStructural();
+    scheduleSave();
+  });
+
+  function syncSettingsInputs(){
+    document.getElementById("totalCreditInput").value = state.totalCredit;
+    document.getElementById("semCountInput").value = state.semesterCount;
+    document.getElementById("targetCgpaInput").value = state.targetCgpa;
+    document.getElementById("flagThresholdInput").value = state.flagThreshold;
+    document.getElementById("nextCreditInput").value = state.nextCredit;
+    document.getElementById("nextGpaInput").value = state.nextGpa;
+    document.getElementById("revTargetInput").value = state.revTarget;
+    document.getElementById("revCreditInput").value = state.revCredit;
+    document.getElementById("optTargetInput").value = state.optTargetCgpa;
+  }
+
+  function normalizeLoaded(loaded){
+    var maxId = 0;
+    var sems = emptySemesters();
+    if(loaded.semesters){
+      Object.keys(loaded.semesters).forEach(function(k){
+        var arr = loaded.semesters[k] || [];
+        arr = arr.map(function(c){ if(c.id>maxId) maxId=c.id; c.prereq = c.prereq||""; c.retakeOf = (c.retakeOf!=null)? c.retakeOf : null; if(c.grade==null) c.grade=""; return c; });
+        sems[k]=arr;
+      });
+    }
+    uid = maxId+1;
+    return {
+      totalCredit: loaded.totalCredit!=null?loaded.totalCredit:163,
+      targetCgpa: loaded.targetCgpa!=null?loaded.targetCgpa:3.80,
+      semesterCount: clamp(loaded.semesterCount!=null?loaded.semesterCount:8, 1, 16),
+      activeSem: loaded.activeSem!=null?loaded.activeSem:1,
+      flagThreshold: loaded.flagThreshold!=null?loaded.flagThreshold:3.25,
+      grades: (loaded.grades && loaded.grades.length) ? loaded.grades : defaultGrades(),
+      nextCredit: loaded.nextCredit!=null?loaded.nextCredit:15,
+      nextGpa: loaded.nextGpa!=null?loaded.nextGpa:3.75,
+      revTarget: loaded.revTarget!=null?loaded.revTarget:(loaded.targetCgpa!=null?loaded.targetCgpa:3.80),
+      revCredit: loaded.revCredit!=null?loaded.revCredit:15,
+      plan: Array.isArray(loaded.plan)?loaded.plan:[],
+      optTargetCgpa: loaded.optTargetCgpa!=null?loaded.optTargetCgpa:(loaded.targetCgpa!=null?loaded.targetCgpa:3.80),
+      optAssumedGrade: loaded.optAssumedGrade || "A-",
+      swaps: migrateSwaps(loaded),
+      curriculumSeeded: loaded.curriculumSeeded===true,
+      updatedAt: loaded.updatedAt||0,
+      semesters: sems
+    };
+  }
+
+  // ---------- Autosave (real localStorage — persists across refresh, per browser) ----------
+  var STORAGE_KEY = "academic-ledger:state";
+  var saveTimer = null;
+
+  function detectStorageSupport(){
+    try{
+      if(typeof window.localStorage === "undefined" || window.localStorage===null) return false;
+      var t = "__ledger_test__";
+      window.localStorage.setItem(t, "1");
+      window.localStorage.removeItem(t);
+      return true;
+    } catch(err){ return false; } // private-browsing lockdown, storage disabled, quota, sandboxed iframe, etc.
+  }
+  var storageSupported = detectStorageSupport();
+
+  function setSaveStatus(status, when){
+    var pill = document.getElementById("savePill");
+    var text = document.getElementById("savePillText");
+    var meta = document.getElementById("storageMeta");
+    var title = document.getElementById("storageTitle");
+    var desc = document.getElementById("storageDesc");
+    pill.className = "save-pill state-"+status;
+    var labels = {
+      loading:"Loading…",
+      pending:"Saving…",
+      saved:"Saved on this device",
+      error:"Save failed — export a backup",
+      unavailable:"Not saving on this device",
+      empty:"Ready"
+    };
+    text.textContent = labels[status] || status;
+    if(meta){
+      if(status==="unavailable"){
+        if(title) title.textContent = "Autosave isn't available here";
+        if(desc) desc.textContent = "This browser or window is blocking local storage (common in private/incognito mode, or inside an embedded preview). Open this file directly in a normal browser tab and autosave will work. Until then, your entries will stay for this session only — export a backup before closing the tab.";
+        meta.textContent = "Nothing will persist automatically. Export often.";
+      } else if(status==="error"){
+        meta.textContent = "The last save attempt failed (storage may be full or disabled). Your entries are still on screen — export a backup as a precaution.";
+      } else if(when){
+        meta.textContent = "Last saved "+when.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})+" on "+when.toLocaleDateString()+" · stored only in this browser, on this device.";
+      } else {
+        meta.textContent = "No saves yet this session.";
+      }
+    }
+  }
+
+  function scheduleSave(){
+    if(storageSupported) setSaveStatus("pending");
+    if(saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(doSave, 500);
+  }
+
+  function persistLocal(){
+    if(!storageSupported) return;
+    try{ window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(err){ console.error("Local save failed:", err); }
+  }
+
+  function doSave(){
+    saveTimer = null;
+    state.updatedAt = Date.now();          // used to decide which copy is newer (device vs cloud)
+    if(storageSupported){
+      try{
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        setSaveStatus("saved", new Date());
+      } catch(err){
+        console.error("Autosave failed:", err);
+        setSaveStatus("error");
+      }
+    }
+    cloudPush();
+  }
+
+  function loadSavedThenRender(){
+    if(!storageSupported){
+      setSaveStatus("unavailable");
+      syncSettingsInputs();
+      renderStructural();
+      return;
+    }
+    setSaveStatus("loading");
+    try{
+      var raw = window.localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        var loaded = JSON.parse(raw);
+        if(loaded && loaded.semesters){
+          state = normalizeLoaded(loaded);
+          maybeSeed();
+        }
+      }
+      syncSettingsInputs();
+      renderStructural();
+      setSaveStatus(raw ? "saved" : "empty", null);
+    } catch(err){
+      console.error("Autosave load failed:", err);
+      syncSettingsInputs();
+      renderStructural();
+      setSaveStatus("empty");
+    }
+  }
+
+  window.addEventListener("beforeunload", function(){
+    // best-effort synchronous flush so a fast refresh right after typing doesn't lose the debounce window
+    if(storageSupported && saveTimer){ clearTimeout(saveTimer); doSave(); }
+  });
+
+  // ---------- Cloud sync (Firebase Auth + Cloud Firestore, over plain REST) ----------
+  // No Firebase SDK and no CDN: this talks to Google's REST endpoints with fetch(), so it also works when
+  // this file is opened straight from disk (file://), where the Firebase JS SDK's Auth cannot run.
+  // This device (localStorage) stays the working copy, so the app works fully offline. When signed in and
+  // online, the ledger is mirrored to the Firestore document  ledgers/<uid>  and re-checked every ~45 s,
+  // on tab focus and when the connection returns. Conflict rule: the copy with the newer updatedAt wins.
+  var FB_API_KEY = "AIzaSyBWZ5dD2xkt7xj5VLVXbQXDShAPa4Ior_g";
+  var FB_PROJECT = "acaled";
+  var AUTH_KEY = STORAGE_KEY+":auth", UID_KEY = STORAGE_KEY+":synced-uid";
+  var cloud = {user:null, idToken:"", exp:0, online:false, gotFirst:false, busy:false, again:false, retries:0, pending:0, lastSync:null, error:""};
+  function $c(id){ return document.getElementById(id); }
+
+  function rest(url, opts){
+    return fetch(url, opts).then(function(res){
+      return res.text().then(function(txt){
+        var body = null;
+        try{ body = txt ? JSON.parse(txt) : null; } catch(e){}
+        if(!res.ok){
+          var e = (body && body.error) || {};
+          var err = new Error(e.message || ("HTTP "+res.status));
+          err.status = res.status; err.gstatus = e.status || ""; err.msg = String(e.message||"");
+          throw err;
+        }
+        return body;
+      });
+    }, function(){
+      var err = new Error("Network error"); err.net = true; throw err;
+    });
+  }
+  function jsonPost(o){ return {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(o)}; }
+  function authUrl(ep){ return "https://identitytoolkit.googleapis.com/v1/accounts:"+ep+"?key="+FB_API_KEY; }
+
+  function saveAuth(){
+    try{ window.localStorage.setItem(AUTH_KEY, JSON.stringify({uid:cloud.user.uid, email:cloud.user.email, refresh:cloud.user.refresh})); } catch(e){}
+  }
+  function clearAuth(){
+    try{ window.localStorage.removeItem(AUTH_KEY); } catch(e){}
+    cloud.user = null; cloud.idToken = ""; cloud.exp = 0; cloud.gotFirst = false; cloud.error = ""; cloud.busy = false; cloud.again = false;
+  }
+  function setSession(d){
+    cloud.idToken = d.idToken; cloud.exp = Date.now() + (parseInt(d.expiresIn,10)||3600)*1000;
+    cloud.user = {uid:d.localId, email:d.email||"", refresh:d.refreshToken};
+    saveAuth();
+  }
+  function ensureToken(){
+    if(cloud.idToken && Date.now() < cloud.exp - 60000) return Promise.resolve();
+    return rest("https://securetoken.googleapis.com/v1/token?key="+FB_API_KEY, {
+      method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"},
+      body:"grant_type=refresh_token&refresh_token="+encodeURIComponent(cloud.user.refresh)
+    }).then(function(d){
+      cloud.idToken = d.id_token; cloud.exp = Date.now() + (parseInt(d.expires_in,10)||3600)*1000;
+      if(d.refresh_token){ cloud.user.refresh = d.refresh_token; saveAuth(); }
+    });
+  }
+
+  function docUrl(){ return "https://firestore.googleapis.com/v1/projects/"+FB_PROJECT+"/databases/(default)/documents/ledgers/"+cloud.user.uid; }
+  function pullDoc(){
+    return rest(docUrl(), {headers:{"Authorization":"Bearer "+cloud.idToken}}).then(function(d){
+      var f = d.fields || {};
+      return {exists:true, updateTime:d.updateTime,
+        updatedAt: f.updatedAt ? (parseInt(f.updatedAt.integerValue,10)||0) : 0,
+        json: f.json ? f.json.stringValue : ""};
+    }, function(err){
+      if(err.gstatus==="NOT_FOUND" || err.status===404) return {exists:false};
+      throw err;
+    });
+  }
+  function pushDoc(remote){
+    // precondition: only write if the cloud document is still the one we just read (no silent overwrite)
+    var q = "?updateMask.fieldPaths=updatedAt&updateMask.fieldPaths=json&" +
+      (remote.exists ? "currentDocument.updateTime="+encodeURIComponent(remote.updateTime) : "currentDocument.exists=false");
+    var body = {fields:{updatedAt:{integerValue:String(state.updatedAt)}, json:{stringValue:JSON.stringify(state)}}};
+    return rest(docUrl()+q, {method:"PATCH", headers:{"Content-Type":"application/json", "Authorization":"Bearer "+cloud.idToken}, body:JSON.stringify(body)});
+  }
+
+  function updateCloudUi(){
+    var kind="", label="", desc="", meta="";
+    if(!cloud.user){
+      label = "Cloud: signed out";
+      desc = "Sign in to back up this ledger and sync it between devices. Without signing in, your data stays only in this browser.";
+    } else {
+      meta = "Signed in as "+(cloud.user.email||"your account")+" · stored in ledgers/"+cloud.user.uid;
+      if(cloud.error){
+        kind = "error"; label = "Cloud: error";
+        desc = /PERMISSION_DENIED|403/.test(cloud.error)
+          ? "Firestore refused access to ledgers/"+cloud.user.uid+". Check that the Firestore rules are published (and that the Cloud Firestore API is enabled for the project)."
+          : "Last cloud operation failed ("+cloud.error+"). Your data is safe on this device; it will retry automatically.";
+      } else if(cloud.busy){
+        kind = "pending"; label = cloud.gotFirst ? "Cloud: syncing…" : "Cloud: connecting…"; desc = "Talking to the cloud…";
+      } else if(!cloud.gotFirst || !cloud.online){
+        kind = "pending"; label = "Cloud: offline — saved locally";
+        desc = "Can't reach the cloud right now. Changes are saved on this device and will upload automatically when the connection returns.";
+      } else {
+        kind = "saved"; label = "Cloud: synced"+(cloud.lastSync ? " "+cloud.lastSync.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : "");
+        desc = "Signed in. Changes upload automatically; other signed-in devices pick them up within about a minute (or when you switch back to the tab). If two devices edit at the same time, the newer edit wins.";
+      }
+    }
+    $c("cloudPill").className = "save-pill"+(kind?" state-"+kind:"");
+    $c("cloudPillText").textContent = label;
+    $c("cloudTitle").textContent = "Cloud sync";
+    $c("cloudDesc").textContent = desc;
+    $c("cloudMeta").textContent = meta;
+    $c("cloudAuthBox").style.display = cloud.user ? "none" : "block";
+    $c("cloudOutBox").style.display = cloud.user ? "block" : "none";
+  }
+
+  function applyRemote(remote){
+    var parsed = null;
+    try{ parsed = JSON.parse(remote.json); } catch(e){}
+    if(!parsed || !parsed.semesters) throw new Error("bad-data");
+    try{   // keep the device copy as a safety net before replacing it
+      if(storageSupported){
+        var cur = window.localStorage.getItem(STORAGE_KEY);
+        if(cur) window.localStorage.setItem(STORAGE_KEY+":before-cloud", cur);
+      }
+    } catch(e){}
+    var keepSem = state.activeSem;
+    state = normalizeLoaded(parsed);
+    state.updatedAt = remote.updatedAt;
+    state.activeSem = clamp(keepSem, 1, state.semesterCount);
+    persistLocal();
+    syncSettingsInputs();
+    renderStructural();
+    if(storageSupported) setSaveStatus("saved", new Date());
+  }
+
+  function syncNow(){
+    if(!cloud.user) return;
+    if(cloud.busy){ cloud.again = true; return; }
+    cloud.busy = true; cloud.again = false; updateCloudUi();
+    var uid = cloud.user.uid;
+    ensureToken().then(pullDoc).then(function(remote){
+      cloud.online = true; cloud.error = ""; cloud.gotFirst = true;
+      var rT = remote.exists ? remote.updatedAt : 0, lT = state.updatedAt||0, other = false;
+      try{ var su = window.localStorage.getItem(UID_KEY); other = !!su && su!==uid; } catch(e){}
+      var sameFile = remote.exists && remote.json;
+      if(sameFile && (rT>lT || (other && rT!==lT))){        // cloud is newer (or this device last synced another account)
+        applyRemote(remote); cloud.lastSync = new Date(); return;
+      }
+      if(!remote.exists || lT>rT){                           // this device is newer -> upload
+        if(!state.updatedAt){ state.updatedAt = Date.now(); persistLocal(); }
+        cloud.pending++;
+        return pushDoc(remote).then(function(){ cloud.pending--; cloud.lastSync = new Date(); }, function(err){ cloud.pending--; throw err; });
+      }
+      cloud.lastSync = new Date();
+    }).then(function(){
+      try{ window.localStorage.setItem(UID_KEY, uid); } catch(e){}
+      cloud.retries = 0;
+    }).catch(function(err){
+      var m = err.msg || "";
+      if(err.net){ cloud.online = false; }
+      else if(/TOKEN_EXPIRED|INVALID_REFRESH_TOKEN|USER_NOT_FOUND|USER_DISABLED|CREDENTIAL_TOO_OLD/.test(m)){
+        clearAuth(); cloudMsg("Your session expired — please sign in again.", true);
+      }
+      else if((err.status===401 || err.gstatus==="UNAUTHENTICATED" || err.gstatus==="FAILED_PRECONDITION" || err.gstatus==="ABORTED" || err.gstatus==="ALREADY_EXISTS" || err.status===409) && cloud.retries<3){
+        cloud.retries++; cloud.again = true;
+        if(err.status===401 || err.gstatus==="UNAUTHENTICATED") cloud.exp = 0;   // force a token refresh
+      }
+      else { cloud.error = err.gstatus || err.msg || err.message || "error"; }
+    }).then(function(){
+      cloud.busy = false; updateCloudUi();
+      if(cloud.again && cloud.user){ cloud.again = false; setTimeout(syncNow, 300); }
+    });
+  }
+  function cloudPush(){ if(cloud.user) syncNow(); }   // called after every local save
+
+  function cloudMsg(text, isErr){
+    var el = $c("cloudMsg");
+    el.className = "cloud-msg"+(isErr?" err":"");
+    el.textContent = text;
+  }
+  function authError(err){
+    if(err.net) return "Couldn't reach Google — check your internet. If you are online, the browser may be blocking the request (see the console).";
+    var c = String(err.msg||"").split(/[ :]/)[0];
+    var map = {
+      INVALID_LOGIN_CREDENTIALS:"Wrong email or password.", INVALID_PASSWORD:"Wrong email or password.",
+      EMAIL_NOT_FOUND:"No account with this email — use “Create account”.",
+      EMAIL_EXISTS:"This email already has an account — use “Sign in”.",
+      WEAK_PASSWORD:"Password must be at least 6 characters.", INVALID_EMAIL:"That email address doesn't look right.",
+      MISSING_PASSWORD:"Enter your password.", MISSING_EMAIL:"Enter your email.",
+      TOO_MANY_ATTEMPTS_TRY_LATER:"Too many attempts. Wait a bit and try again.",
+      OPERATION_NOT_ALLOWED:"Email/Password sign-in is not enabled in the Firebase console (Authentication → Sign-in method).",
+      USER_DISABLED:"This account has been disabled."
+    };
+    return map[c] || ("Sign-in failed"+(err.msg?" ("+err.msg+")":"")+".");
+  }
+  function authAction(kind){
+    var email = $c("cloudEmail").value.trim(), pass = $c("cloudPass").value, p;
+    if(!email){ cloudMsg("Enter your email.", true); return; }
+    if(kind==="reset") p = rest(authUrl("sendOobCode"), jsonPost({requestType:"PASSWORD_RESET", email:email}));
+    else if(!pass){ cloudMsg("Enter your password.", true); return; }
+    else p = rest(authUrl(kind==="signup" ? "signUp" : "signInWithPassword"), jsonPost({email:email, password:pass, returnSecureToken:true}));
+    cloudMsg("Working…", false);
+    p.then(function(d){
+      if(kind==="reset"){ cloudMsg("Password reset email sent.", false); return; }
+      setSession(d);
+      $c("cloudPass").value = "";
+      cloudMsg("Signed in.", false);
+      cloud.gotFirst = false; cloud.retries = 0;
+      syncNow();
+    }).catch(function(err){ cloudMsg(authError(err), true); });
+  }
+  $c("cloudSignIn").addEventListener("click", function(){ authAction("signin"); });
+  $c("cloudSignUp").addEventListener("click", function(){ authAction("signup"); });
+  $c("cloudReset").addEventListener("click", function(){ authAction("reset"); });
+  $c("cloudSignOut").addEventListener("click", function(){
+    clearAuth(); updateCloudUi();
+    cloudMsg("Signed out. Your data stays on this device.", false);
+  });
+
+  window.addEventListener("online", function(){ syncNow(); });
+  window.addEventListener("offline", function(){ cloud.online = false; updateCloudUi(); });
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden) syncNow(); });
+  setInterval(function(){ if(!document.hidden) syncNow(); }, 45000);
+
+  function cloudInit(){
+    try{
+      var raw = window.localStorage.getItem(AUTH_KEY);
+      if(raw){ var a = JSON.parse(raw); if(a && a.uid && a.refresh) cloud.user = {uid:a.uid, email:a.email||"", refresh:a.refresh}; }
+    } catch(e){}
+    updateCloudUi();
+    syncNow();
+  }
+
+  loadSavedThenRender();
+  cloudInit();
+})();
+</script>
+</body>
+</html>
